@@ -238,20 +238,26 @@ for rc in contracts:
     print(rc.id)                     # 1845
     print(rc.category)               # "Frilaesning"
     print(rc.date_range)             # "Fra 6. mar. til 27. mar. 2026"
-    print(rc.pages_to_read)          # 400
-    print(rc.progress)               # 120
+    print(rc.pages_to_read)          # 400 (target)
     print(rc.is_active)              # True
     print(rc.is_page_used_for_count) # False (= minutes, True = pages)
+
+    # The real progress is the sum across books
+    unit = "min" if not rc.is_page_used_for_count else "pages"
+    total = sum(b.read_pages_count for b in rc.books)
+    print(f"Total read: {total} {unit} / {rc.pages_to_read} target")
 
     for book in rc.books:
         print(book.title)            # "Pippi Langstroempe"
         print(book.author)           # "Astrid Lindgren"
-        print(book.read_pages_count) # 120
+        print(book.read_pages_count) # 120 (minutes or pages read for this book)
 ```
 
 **Models:** `ReadingContract`, `ReadingContractBook`
 
 **Parser notes:** This page is a Vue.js SPA — the HTML contains no reading data. The parser extracts the API URL from a `data-clientlogic-settings-ReadingContracts` JSON attribute on `#sk-reading-contracts`, then calls the AJAX endpoint (`/readingcontracts/GetStudentReadingContracts`) which returns JSON. Note: BeautifulSoup/lxml lowercases HTML attributes, so the attribute must be queried in lowercase.
+
+The `read_pages_count` on each book is the **total minutes (or pages) read for that book**, verified by summing individual reading records from the `GetRecordsForBook` endpoint. The contract-level `progress` field is a server-reported value that may not match the book totals.
 
 ---
 
@@ -578,7 +584,7 @@ from pyskoleintra import (
 | `category` | `str` | Reading category (e.g. `"Frilaesning"`) |
 | `date_range` | `str` | Human-readable date range (e.g. `"Fra 6. mar. til 27. mar. 2026"`) |
 | `pages_to_read` | `int` | Target number of pages or minutes |
-| `progress` | `int` | Current progress toward target |
+| `progress` | `int` | Server-reported progress (may be stale — sum `books[].read_pages_count` for accurate total) |
 | `is_active` | `bool` | Whether the contract is currently active |
 | `is_page_used_for_count` | `bool` | `True` = pages, `False` = minutes |
 | `books` | `list[ReadingContractBook]` | Books registered under this contract |
@@ -589,7 +595,7 @@ from pyskoleintra import (
 |---|---|---|
 | `title` | `str` | Book title |
 | `author` | `str` | Author name |
-| `read_pages_count` | `int` | Pages or minutes read for this book |
+| `read_pages_count` | `int` | Total minutes (or pages) read for this book — sum of all individual reading records |
 
 ### `ContactBookNote`
 

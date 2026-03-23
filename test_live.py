@@ -233,13 +233,15 @@ def main():
             for rc in contracts:
                 unit = "pages" if rc.is_page_used_for_count else "min"
                 active = "ACTIVE" if rc.is_active else "expired"
-                pct = (rc.progress / rc.pages_to_read * 100) if rc.pages_to_read else 0
+                book_total = sum(b.read_pages_count for b in rc.books)
+                pct = (book_total / rc.pages_to_read * 100) if rc.pages_to_read else 0
                 print(f"  Contract #{rc.id}: {rc.category} [{active}]")
                 print(f"    Period: {rc.date_range}")
-                print(f"    Progress: {rc.progress}/{rc.pages_to_read} {unit} ({pct:.0f}%)")
+                print(f"    Target: {rc.pages_to_read} {unit}")
+                print(f"    Total read: {book_total} {unit} ({pct:.0f}%)")
                 print(f"    Books ({len(rc.books)}):")
                 for book in rc.books:
-                    print(f"      - {book.title} by {book.author} ({book.read_pages_count} {unit})")
+                    print(f"      - {book.title} by {book.author} ({book.read_pages_count} {unit} read)")
         else:
             print("  No reading contracts")
 
