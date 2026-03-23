@@ -12,6 +12,27 @@ pip install -e .
 
 Requires Python 3.10+. Dependencies: `requests`, `beautifulsoup4`, `lxml`.
 
+## Setup
+
+### Finding your school subdomain
+
+The school subdomain is the first part of the URL you use to log in to Skoleintra. When you visit your school's Skoleintra, the address bar will show something like:
+
+```
+https://myschool.m.skoleintra.dk/...
+```
+
+The subdomain is `myschool` — the part before `.m.skoleintra.dk`. This is the value you pass to `Skoleintra()`.
+
+You can also find it by:
+- Checking any Skoleintra link or bookmark from your school
+- Asking your school's administration
+- Looking in emails from Skoleintra (they often contain links with the subdomain)
+
+### Credentials
+
+Your username and password are the same ones you use to log in to ForaeldreIntra on the web.
+
 ## Quick start
 
 ```python
