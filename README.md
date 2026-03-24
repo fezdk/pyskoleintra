@@ -149,7 +149,7 @@ for msg in unread:
 #### Message detail
 
 ```python
-# From unread list
+# From unread list (uses the numeric message ID)
 detail = child.message(msg.id)
 
 print(detail.subject)       # "Udflugt fredag"
@@ -162,11 +162,21 @@ print(len(detail.attachments)) # 0
 for att in detail.attachments:
     print(att.name, att.url)
 
-# From conversation thread (returns list of all messages)
-messages = child.message(thread_id, source="thread")
+# From conversation thread (returns list of all messages in the thread)
+# Requires both the numeric message ID and the UUID thread ID
+messages = child.message(
+    t.latest_message_id,
+    source="thread",
+    thread_id=t.thread_id,
+)
 for m in messages:
     print(m.sender, m.content[:80])
 ```
+
+The `message()` method supports three sources:
+- `source="unread"` (default) — fetch by numeric message ID from unread list
+- `source="outbox"` — fetch from sent messages
+- `source="thread"` — fetch all messages in a conversation; requires `thread_id` (UUID from `MessageThread.thread_id`) and `message_id` (numeric from `MessageThread.latest_message_id`)
 
 #### Search messages
 
