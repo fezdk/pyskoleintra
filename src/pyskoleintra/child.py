@@ -128,20 +128,31 @@ class Child:
         html = self._get("messages/unread")
         return msg_parser.parse_unread_messages_list(html)
 
-    def message(self, message_id: str | int, *, source: str = "unread") -> MessageDetail | list[MessageDetail]:
+    def message(
+        self,
+        message_id: str | int,
+        *,
+        source: str = "unread",
+        thread_id: str | None = None,
+    ) -> MessageDetail | list[MessageDetail]:
         """Fetch a single message's full detail.
 
         Args:
-            message_id: The message or thread ID.
+            message_id: The numeric message ID (e.g. from ``MessageThread.latest_message_id``).
             source: Where to fetch from — ``"unread"``, ``"outbox"``, or ``"thread"``.
                 For ``"thread"``, returns a list of all messages in the thread.
+            thread_id: The UUID thread ID (required for ``source="thread"``).
+                If not provided, ``message_id`` is used as both threadId and
+                takeFromRootMessageId — which only works if message_id is numeric.
         """
         if source == "thread":
-            # Thread-based loading returns JSON
+            # The API requires threadId (UUID) and takeFromRootMessageId (numeric).
+            tid = thread_id or message_id
+            root_id = message_id
             url = (
                 f"{self._base_url}{self.parent_path}/messages/conversations"
                 f"/loadmessagesforselectedconversation"
-                f"?threadId={message_id}&takeFromRootMessageId={message_id}"
+                f"?threadId={tid}&takeFromRootMessageId={root_id}"
                 f"&takeToMessageId=0&searchRequest=&_={int(time.time())}"
             )
             resp = self._http.get(url)
