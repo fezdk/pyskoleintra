@@ -129,6 +129,10 @@ class SfoInfo:
     base_url: str
     tabulex_url: str | None = None
     front_page_posting: str = ""
+    notice_board: str = ""
+    weekly_plan: str = ""
+    news: str = ""
+    shortcuts: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -137,6 +141,27 @@ class AgendaItem:
 
     date: datetime
     fields: dict[str, str]  # Dynamic keys like 'time', 'activity', 'note'
+
+
+@dataclass
+class TabulexNewsItem:
+    """A news/notice panel shown on the Tabulex guardian dashboard."""
+
+    title: str
+    content: str
+
+
+@dataclass
+class TabulexDashboard:
+    """Read-only snapshot of the Tabulex guardian dashboard."""
+
+    status: str = ""
+    news: list[TabulexNewsItem] = field(default_factory=list)
+    week_label: str = ""
+    appointments: list[AgendaItem] = field(default_factory=list)
+    birthdays: list[str] = field(default_factory=list)
+    birthday_message: str = ""
+    galleries: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 Python client library for [Skoleintra](https://skoleintra.dk) — the Danish school intranet platform used by many private and free schools (friskoler).
 
-Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO schedules, photos, student contacts, documents, and timetables.
+Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO/Tabulex dashboards and appointments, photos, student contacts, documents, and timetables.
 
 ## Installation
 
@@ -411,17 +411,64 @@ sfo = child.sfo()
 print(sfo.base_url)           # "https://..."
 print(sfo.tabulex_url)        # "/Tabulex/..."
 print(sfo.front_page_posting) # "Velkommen til SFO..."
+print(sfo.notice_board)
+print(sfo.weekly_plan)
+print(sfo.news)
+print(sfo.shortcuts)
 
-# Fetch the Tabulex SFO schedule
-agenda = child.tabulex_agenda()
-for item in agenda:
+# The Tabulex URL is discovered dynamically through the SFO page and SSO.
+dashboard = child.tabulex_dashboard()
+print(dashboard.status)
+print(dashboard.news)
+print(dashboard.birthdays)
+for item in dashboard.appointments:
     print(item.date)    # datetime
-    print(item.fields)  # {"time": "14:00", "activity": "Frileg"}
+    print(item.fields)
+
+# The legacy agenda parser remains available separately.
+agenda = child.tabulex_agenda()
+
+# Read-only access to the guardian sub-pages is allow-listed.
+appointments_html = child.tabulex_guardian_page("/guardian/appointments")
+messages_html = child.tabulex_guardian_page("/guardian/messages")
+appointments = child.tabulex_appointments()
+appointment_id = appointments[0].fields["eventplannedid"]
+
+# Build a create payload from the live appointment-type choices, then submit it.
+values = child.tabulex_prepare_appointment(
+    date="20/08-26",
+    time="14:30",
+    kind="Hentes",
+    pickup="Forælder",
+)
+child.tabulex_submit_appointment(values)
+
+# Editing preserves the supplied appointment ID. The prepare call returns the
+# current appointment so an application can present its own confirmation UI.
+current, values = child.tabulex_prepare_edit_appointment(
+    appointment_id,
+    date="20/08-26",
+    time="15:00",
+    kind="Hentes",
+    pickup="Forælder",
+)
+child.tabulex_edit_appointment(appointment_id, values)
+
+# A caller can load the exact row for its own preview before deleting it.
+delete_preview = child.tabulex_prepare_delete_appointment(appointment_id)
+print(delete_preview.fields)
+child.tabulex_delete_appointment(appointment_id)
+
+# These lower-level methods accept field mappings for the corresponding modal.
+child.tabulex_submit_holiday(holiday_values)
+child.tabulex_report_sick(sick_values)
 ```
 
-**Models:** `SfoInfo`, `AgendaItem`
+**Models:** `SfoInfo`, `AgendaItem`, `TabulexDashboard`, `TabulexNewsItem`
 
-**Parser notes:** The SFO page involves a complex redirect chain (integration -> external site -> SAML form submissions). Tabulex has its own SAML flow with up to 3 form submission rounds. The agenda is an HTML table with `tr.day` (date headers) and `tr.info` (field rows) elements.
+**Write semantics:** The library performs a requested write without interactive confirmation. Applications are responsible for preview and confirmation policy. Appointment IDs are validated as numeric, and edit payloads cannot override the ID passed to `tabulex_edit_appointment()`.
+
+**Parser notes:** The SFO page involves a complex redirect chain (integration -> external site -> SAML form submissions). Only forms containing known identity-provider fields are auto-submitted; ordinary SFOweb forms are never treated as redirects. The Tabulex URL, including its installation-specific query parameters, is discovered dynamically rather than hardcoded.
 
 ---
 
@@ -705,6 +752,29 @@ from pyskoleintra import (
 | `base_url` | `str` | Base URL of the SFO/Infoweb system |
 | `tabulex_url` | `str \| None` | URL path to the Tabulex SFO page (if available) |
 | `front_page_posting` | `str` | Front page content text |
+| `notice_board` | `str` | Text from the Infoweb notice board |
+| `weekly_plan` | `str` | Text from the Infoweb weekly-plan section |
+| `news` | `str` | Text from the Infoweb SFO news section |
+| `shortcuts` | `dict[str, str]` | Named links discovered on the SFO front page |
+
+### `TabulexDashboard`
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `str` | Current child status shown by Tabulex |
+| `news` | `list[TabulexNewsItem]` | News and notice panels |
+| `week_label` | `str` | Label for the displayed week |
+| `appointments` | `list[AgendaItem]` | Appointments shown on the dashboard |
+| `birthdays` | `list[str]` | Birthday entries, when present |
+| `birthday_message` | `str` | Full text from the birthday panel |
+| `galleries` | `list[str]` | Gallery labels shown on the dashboard |
+
+### `TabulexNewsItem`
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | `str` | Panel title |
+| `content` | `str` | Panel text |
 
 ### `AgendaItem`
 

@@ -48,6 +48,8 @@ from .models import (
     ScheduleLesson,
     SfoInfo,
     StudentContact,
+    TabulexDashboard,
+    TabulexNewsItem,
     WeeklyPlan,
 )
 
@@ -78,6 +80,8 @@ __all__ = [
     "ScheduleLesson",
     "SfoInfo",
     "StudentContact",
+    "TabulexDashboard",
+    "TabulexNewsItem",
     "WeeklyPlan",
     # Exceptions
     "AuthenticationError",

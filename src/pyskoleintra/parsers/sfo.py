@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import datetime
 
-from ..models import AgendaItem, SfoInfo
+from ..models import AgendaItem, SfoInfo, TabulexDashboard, TabulexNewsItem
 from .common import MONTH_LONG, extract_text, make_soup
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,111 @@ def parse_sfo_page(html: str, base_url: str) -> SfoInfo:
         base_url=base_url,
         tabulex_url=tabulex_url,
         front_page_posting=front_page,
+        notice_board=_find_infoweb_section(soup, r"opslagstavle"),
+        weekly_plan=_find_infoweb_section(soup, r"ugeplan"),
+        news=_find_infoweb_section(soup, r"nyt\s+fra\s+sfo"),
+        shortcuts=links,
     )
+
+
+def _find_infoweb_section(soup, heading_pattern: str) -> str:
+    """Extract a legacy Infoweb box without depending on a single table layout."""
+    heading = soup.find(string=re.compile(heading_pattern, re.IGNORECASE))
+    if heading is None:
+        return ""
+    for container_name in ("td", "tr", "table", "div"):
+        container = heading.find_parent(container_name)
+        if container is None:
+            continue
+        text = container.get_text(" ", strip=True)
+        text = re.sub(heading_pattern, "", text, count=1, flags=re.IGNORECASE).strip()
+        if text and len(text) <= 4000:
+            return text
+    return ""
+
+
+def parse_tabulex_dashboard(html: str) -> TabulexDashboard:
+    """Parse the current server-rendered IST SFO guardian dashboard."""
+    soup = make_soup(html)
+    dashboard = TabulexDashboard()
+
+    for panel in soup.select(".panel"):
+        heading_element = panel.select_one(".panel-title, .panel-heading")
+        if heading_element is None:
+            continue
+        heading = heading_element.get_text(" ", strip=True)
+        body = panel.select_one(".panel-body")
+        body_text = body.get_text(" ", strip=True) if body else ""
+        lowered = heading.lower()
+
+        if lowered == "status" and body_text and not dashboard.status:
+            dashboard.status = body_text
+        elif re.match(r"uge\s+\d+", lowered):
+            dashboard.week_label = heading
+        elif "fødselsdag" in lowered or "fodselsdag" in lowered:
+            dashboard.birthday_message = body_text
+            if body and "ingen fødselsdage" not in body_text.lower():
+                dashboard.birthdays = [
+                    text
+                    for text in (
+                        item.get_text(" ", strip=True)
+                        for item in body.select("li, .birthday")
+                    )
+                    if text
+                ]
+                if not dashboard.birthdays and body_text:
+                    dashboard.birthdays = [body_text]
+        elif "billeder" in lowered:
+            dashboard.galleries = [
+                link.get_text(" ", strip=True)
+                for link in (body.select("a") if body else [])
+                if link.get_text(" ", strip=True)
+            ]
+            if not dashboard.galleries and body_text:
+                dashboard.galleries = [body_text]
+        elif body_text:
+            header_id = str(heading_element.get("id") or "")
+            if header_id.startswith("news_") or "ferie" in lowered or "ny" in lowered:
+                dashboard.news.append(TabulexNewsItem(title=heading, content=body_text))
+
+    dashboard.appointments = parse_tabulex_agenda(html)
+    return dashboard
+
+
+def parse_tabulex_appointments_page(html: str) -> list[AgendaItem]:
+    """Parse current and future appointments from ``/guardian/appointments``."""
+    soup = make_soup(html)
+    items: list[AgendaItem] = []
+    date_pattern = re.compile(r"\b(\d{1,2}/\d{1,2}-\d{2,4})\b")
+    for row in soup.select("tr"):
+        row_text = row.get_text(" ", strip=True)
+        match = date_pattern.search(row_text)
+        if not match:
+            continue
+        date_value = None
+        for date_format in ("%d/%m-%y", "%d/%m-%Y"):
+            try:
+                date_value = datetime.strptime(match.group(1), date_format)
+                break
+            except ValueError:
+                continue
+        if date_value is None:
+            continue
+        fields: dict[str, str] = {"summary": row_text}
+        delete_control = row.find(attrs={"onclick": re.compile(r"delete_container\d+")})
+        if delete_control is not None:
+            id_match = re.search(r"delete_container(\d+)", str(delete_control.get("onclick") or ""))
+            if id_match:
+                fields["eventplannedid"] = id_match.group(1)
+        for index, cell in enumerate(row.select("th, td")):
+            value = cell.get_text(" ", strip=True)
+            if not value:
+                continue
+            classes = cell.get("class", [])
+            key = str(classes[0]) if classes else f"column_{index}"
+            fields[key] = value
+        items.append(AgendaItem(date=date_value, fields=fields))
+    return items
 
 
 def parse_tabulex_agenda(html: str) -> list[AgendaItem]:

@@ -7,6 +7,7 @@ methods to fetch all data sources available for that child.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
@@ -30,6 +31,7 @@ from .models import (
     ScheduleDay,
     SfoInfo,
     StudentContact,
+    TabulexDashboard,
     WeeklyPlan,
 )
 from .parsers import (
@@ -52,6 +54,15 @@ if TYPE_CHECKING:
     from .http import HttpSession
 
 logger = logging.getLogger(__name__)
+
+_SSO_FIELD_NAMES = {
+    "samlrequest",
+    "samlresponse",
+    "relaystate",
+    "wa",
+    "wctx",
+    "wresult",
+}
 
 
 class Child:
@@ -90,6 +101,26 @@ class Child:
         """GET a child-scoped path and return the response text."""
         resp = self._http.get(self._url(path), relogin_callback=relogin_callback)
         return resp.text
+
+    @staticmethod
+    def _is_sso_form(form: dict) -> bool:
+        names = {str(name).lower() for name in form.get("inputs", {})}
+        return bool(names & _SSO_FIELD_NAMES)
+
+    def _follow_sso(self, resp, *, max_steps: int = 10):
+        """Follow redirects and identity-provider forms, never application forms."""
+        resp = self._http.follow_redirects(resp)
+        for _ in range(max_steps):
+            if resp.status_code != 200:
+                break
+            form = parse_first_form(resp.text)
+            if not form or not self._is_sso_form(form):
+                break
+            base = str(resp.url or "")
+            action = resolve_url(base, form["form"]["action"])
+            resp = self._http.post(action, data=form["inputs"])
+            resp = self._http.follow_redirects(resp)
+        return resp
 
     # -----------------------------------------------------------------------
     # Frontpage
@@ -302,7 +333,11 @@ class Child:
                 break
             form = parse_first_form(resp.text)
             if form:
-                resp = self._http.post(form["form"]["action"], data=form["inputs"])
+                if not self._is_sso_form(form):
+                    break
+                base = str(resp.url or url)
+                action = resolve_url(base, form["form"]["action"])
+                resp = self._http.post(action, data=form["inputs"])
                 resp = self._http.follow_redirects(resp)
                 continue
             js_url = parse_js_redirect(resp.text)
@@ -352,20 +387,254 @@ class Child:
                 return []
             tabulex_url = resolve_url(sfo_info.base_url, sfo_info.tabulex_url)
 
-        resp = self._http.get(tabulex_url)
-        resp = self._http.follow_redirects(resp)
-
-        # Handle potential SAML forms (Tabulex has its own SAML flow)
-        for _ in range(5):
-            if resp.status_code != 200:
-                break
-            form = parse_first_form(resp.text)
-            if not form:
-                break
-            resp = self._http.post(form["form"]["action"], data=form["inputs"])
-            resp = self._http.follow_redirects(resp)
-
+        resp = self._follow_sso(self._http.get(tabulex_url), max_steps=5)
         return sfo_parser.parse_tabulex_agenda(resp.text)
+
+    def _tabulex_page(self, path: str | None = None):
+        """Open the discovered Tabulex landing page or a read-only guardian path."""
+        sfo_info = self.sfo()
+        if not sfo_info.tabulex_url:
+            raise ParseError("SFO front page does not contain a Tabulex link")
+        discovered_url = resolve_url(sfo_info.base_url, sfo_info.tabulex_url)
+        landing = self._follow_sso(self._http.get(discovered_url), max_steps=5)
+        if path is None:
+            return landing
+        target = resolve_url(str(landing.url), path)
+        return self._http.get(target)
+
+    def tabulex_dashboard(self) -> TabulexDashboard:
+        """Fetch status, notices, appointments, birthdays, and galleries."""
+        return sfo_parser.parse_tabulex_dashboard(self._tabulex_page().text)
+
+    def tabulex_guardian_page(self, path: str) -> str:
+        """GET an allow-listed Tabulex guardian page and return its HTML."""
+        allowed = {
+            "/guardian/appointments",
+            "/guardian/messages",
+            "/guardian/holidays",
+            "/guardian/gallery",
+            "/guardian/activities",
+        }
+        if path not in allowed:
+            raise ValueError(f"Unsupported Tabulex guardian path: {path}")
+        return self._tabulex_page(path).text
+
+    def tabulex_appointments(self) -> list[AgendaItem]:
+        """Fetch current and future appointments across dashboard weeks."""
+        html = self.tabulex_guardian_page("/guardian/appointments")
+        return sfo_parser.parse_tabulex_appointments_page(html)
+
+    def tabulex_prepare_delete_appointment(self, eventplannedid: str) -> AgendaItem:
+        """Resolve an appointment ID to the exact currently displayed appointment."""
+        if not str(eventplannedid).isdigit():
+            raise ValueError("eventplannedid must be numeric")
+        matches = [
+            item
+            for item in self.tabulex_appointments()
+            if item.fields.get("eventplannedid") == str(eventplannedid)
+        ]
+        if len(matches) != 1:
+            raise ValueError(
+                f"Expected one current appointment with ID {eventplannedid}, found {len(matches)}"
+            )
+        return matches[0]
+
+    def tabulex_delete_appointment(
+        self,
+        eventplannedid: str,
+    ):
+        """Delete an appointment by its numeric Tabulex ID."""
+        if not str(eventplannedid).isdigit():
+            raise ValueError("eventplannedid must be numeric")
+
+        page = self._tabulex_page("/guardian/appointments")
+        soup = sfo_parser.make_soup(page.text)
+        form = soup.find("form", id="form_editappointment")
+        if form is None:
+            raise ParseError("Tabulex edit/delete form not found")
+        payload: dict[str, str] = {}
+        for field in form.select("input[name]"):
+            name = field.get("name")
+            if name:
+                payload[str(name)] = str(field.get("value") or "")
+        prefix = "tx_tmsfo_pi1[formdata]"
+        payload[f"{prefix}[eventplannedid]"] = str(eventplannedid)
+        payload[f"{prefix}[eventowner]"] = ""
+        payload["eID"] = "ajax"
+        target = resolve_url(str(page.url), "/guardian/appointments")
+        return self._http.post(target, data=payload)
+
+    def tabulex_prepare_edit_appointment(
+        self,
+        eventplannedid: str,
+        *,
+        date: str,
+        time: str,
+        kind: str,
+        pickup: str = "",
+    ) -> tuple[AgendaItem, dict[str, str]]:
+        """Validate a current appointment and build an edit payload from its modal."""
+        if not str(eventplannedid).isdigit():
+            raise ValueError("eventplannedid must be numeric")
+        if not re.fullmatch(r"\d{2}/\d{2}-\d{2}(?:\d{2})?", date):
+            raise ValueError("date must use DD/MM-YY or DD/MM-YYYY")
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):(?:00|15|30|45)", time):
+            raise ValueError("time must use HH:MM in 15-minute increments")
+
+        page = self._tabulex_page("/guardian/appointments")
+        appointments = sfo_parser.parse_tabulex_appointments_page(page.text)
+        matches = [
+            item
+            for item in appointments
+            if item.fields.get("eventplannedid") == str(eventplannedid)
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"Appointment {eventplannedid} is not uniquely present")
+        soup = sfo_parser.make_soup(page.text)
+        selector = soup.find("select", id="create_appointment_what")
+        if selector is None:
+            raise ParseError("Tabulex appointment type selector not found")
+        options = {
+            option.get_text(" ", strip=True).casefold(): str(option.get("value") or "")
+            for option in selector.select("option[value]")
+        }
+        event_type_id = options.get(kind.strip().casefold())
+        if not event_type_id:
+            raise ValueError(f"Unknown Tabulex appointment type: {kind}")
+
+        prefix = "tx_tmsfo_pi1[formdata]"
+        return matches[0], {
+            f"{prefix}[eventplannedid]": str(eventplannedid),
+            f"{prefix}[eventtransport]": "",
+            f"{prefix}[eventpickup]": pickup,
+            f"{prefix}[eventtypeid]": event_type_id,
+            f"{prefix}[eventdescription]": "",
+            f"{prefix}[eventbeforestarttime]": "1400",
+            f"{prefix}[eventstarttime]": time.replace(":", ""),
+            f"{prefix}[eventstartdate]": date,
+            f"{prefix}[eventendtime]": "",
+            f"{prefix}[eventenddate]": "",
+            f"{prefix}[eventtype]": "0",
+            f"{prefix}[eventrulebyday]": "",
+            f"{prefix}[eventignoreonholiday]": "0",
+            f"{prefix}[eventowner]": "",
+            f"{prefix}[eventruleinterval]": "",
+        }
+
+    def tabulex_edit_appointment(
+        self,
+        eventplannedid: str,
+        values: dict[str, str],
+    ):
+        """Edit an appointment by its numeric Tabulex ID."""
+        if not str(eventplannedid).isdigit():
+            raise ValueError("eventplannedid must be numeric")
+        page = self._tabulex_page("/guardian/appointments")
+        soup = sfo_parser.make_soup(page.text)
+        form = soup.find("form", id="form_editappointment")
+        if form is None:
+            raise ParseError("Tabulex edit form not found")
+        payload: dict[str, str] = {}
+        for field in form.select("input[name]"):
+            name = field.get("name")
+            if name:
+                payload[str(name)] = str(field.get("value") or "")
+        payload.update({str(key): str(value) for key, value in values.items()})
+        prefix = "tx_tmsfo_pi1[formdata]"
+        payload[f"{prefix}[eventplannedid]"] = str(eventplannedid)
+        payload["eID"] = "ajax"
+        target = resolve_url(str(page.url), "/guardian/appointments")
+        return self._http.post(target, data=payload)
+
+    def _tabulex_submit_modal(self, form_id: str, values: dict[str, str]):
+        """Submit one known Tabulex modal form."""
+        allowed = {
+            "form_editappointment_header": "/guardian/appointments",
+            "form_holiday_header": "/guardian/holidays",
+            "form_reportsick": "/",
+        }
+        if form_id not in allowed:
+            raise ValueError(f"Unsupported Tabulex write form: {form_id}")
+
+        landing = self._tabulex_page()
+        soup = sfo_parser.make_soup(landing.text)
+        form = soup.find("form", id=form_id)
+        if form is None:
+            raise ParseError(f"Tabulex form not found: {form_id}")
+        payload: dict[str, str] = {}
+        for field in form.select("input[name], select[name], textarea[name]"):
+            name = field.get("name")
+            if not name or field.has_attr("disabled"):
+                continue
+            if field.name == "input" and field.get("type") in ("checkbox", "radio"):
+                if not field.has_attr("checked"):
+                    continue
+            payload[str(name)] = str(field.get("value") or "")
+        payload.update({str(key): str(value) for key, value in values.items()})
+        payload["eID"] = "ajax"
+        action = resolve_url(str(landing.url), allowed[form_id])
+        return self._http.post(action, data=payload)
+
+    def tabulex_submit_appointment(self, values: dict[str, str]):
+        """Submit the dashboard's appointment modal (not a delete operation)."""
+        return self._tabulex_submit_modal("form_editappointment_header", values)
+
+    def tabulex_prepare_appointment(
+        self,
+        *,
+        date: str,
+        time: str,
+        kind: str,
+        pickup: str = "",
+        event_type_id: str | None = None,
+        allow_type_override: bool = False,
+    ) -> dict[str, str]:
+        """Validate an appointment against live modal choices and build its payload."""
+        if not re.fullmatch(r"\d{2}/\d{2}-\d{2}", date):
+            raise ValueError("date must use DD/MM-YY")
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):(?:00|15|30|45)", time):
+            raise ValueError("time must use HH:MM in 15-minute increments")
+        landing = self._tabulex_page()
+        soup = sfo_parser.make_soup(landing.text)
+        select = soup.find("select", id="create_appointment_what")
+        if select is None:
+            raise ParseError("Tabulex appointment type selector not found")
+        options = {
+            option.get_text(" ", strip=True).casefold(): str(option.get("value") or "")
+            for option in select.select("option[value]")
+        }
+        discovered_type_id = options.get(kind.strip().casefold())
+        if not discovered_type_id:
+            raise ValueError(f"Unknown Tabulex appointment type: {kind}")
+        if event_type_id is not None:
+            if not allow_type_override:
+                raise ValueError("event_type_id override requires allow_type_override=True")
+            discovered_type_id = event_type_id
+        field = "tx_tmsfo_pi1[formdata]"
+        return {
+            f"{field}[eventplannedid]": "",
+            f"{field}[eventtransport]": "",
+            f"{field}[eventpickup]": pickup,
+            f"{field}[eventtypeid]": discovered_type_id,
+            f"{field}[eventdescription]": "",
+            f"{field}[eventbeforestarttime]": "1400",
+            f"{field}[eventstarttime]": time.replace(":", ""),
+            f"{field}[eventstartdate]": date,
+            f"{field}[eventendtime]": "",
+            f"{field}[eventenddate]": "",
+            f"{field}[eventtype]": "0",
+            f"{field}[eventrulebyday]": "",
+            f"{field}[eventignoreonholiday]": "0",
+            f"{field}[eventowner]": "",
+        }
+
+    def tabulex_submit_holiday(self, values: dict[str, str]):
+        """Submit the dashboard's holiday/day-off modal."""
+        return self._tabulex_submit_modal("form_holiday_header", values)
+
+    def tabulex_report_sick(self, values: dict[str, str]):
+        """Submit the dashboard's sick-report modal."""
+        return self._tabulex_submit_modal("form_reportsick", values)
 
     # -----------------------------------------------------------------------
     # Photos / albums
