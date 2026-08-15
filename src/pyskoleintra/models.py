@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, time
+from enum import Enum, IntEnum
 
 
 # ---------------------------------------------------------------------------
@@ -136,19 +137,41 @@ class SfoInfo:
 
 
 @dataclass
-class AgendaItem:
-    """A single agenda item from Tabulex SFO schedule."""
-
-    date: datetime
-    fields: dict[str, str]  # Dynamic keys like 'time', 'activity', 'note'
-
-
-@dataclass
 class TabulexNewsItem:
     """A news/notice panel shown on the Tabulex guardian dashboard."""
 
     title: str
     content: str
+
+
+@dataclass(frozen=True)
+class TabulexAgendaItem:
+    """One dated item in the week overview on the guardian dashboard."""
+
+    date: date
+    title: str
+    time: time | None = None
+    time_text: str = ""
+    description: str = ""
+
+
+@dataclass(frozen=True)
+class TabulexNavigationItem:
+    """One child-scoped section discovered in the guardian side menu."""
+
+    title: str
+    path: str
+    badge_count: int = 0
+
+
+@dataclass(frozen=True)
+class TabulexCapabilities:
+    """Actions exposed by the current guardian installation."""
+
+    can_create_appointment: bool = False
+    can_report_sick: bool = False
+    can_create_day_off: bool = False
+    can_update_activity: bool = False
 
 
 @dataclass
@@ -158,10 +181,155 @@ class TabulexDashboard:
     status: str = ""
     news: list[TabulexNewsItem] = field(default_factory=list)
     week_label: str = ""
-    appointments: list[AgendaItem] = field(default_factory=list)
+    appointments: list[TabulexAgendaItem] = field(default_factory=list)
     birthdays: list[str] = field(default_factory=list)
     birthday_message: str = ""
     galleries: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class TabulexAppointmentType:
+    """An appointment type offered by the current Tabulex installation."""
+
+    id: str
+    name: str
+
+
+class TabulexRecurrence(str, Enum):
+    """Supported appointment recurrence modes."""
+
+    NONE = "none"
+    WEEKLY = "weekly"
+    EVERY_OTHER_WEEK = "every_other_week"
+
+
+class TabulexWeekday(IntEnum):
+    """Bit values used by the Tabulex appointment form."""
+
+    MONDAY = 1
+    TUESDAY = 2
+    WEDNESDAY = 4
+    THURSDAY = 8
+    FRIDAY = 16
+
+
+@dataclass(frozen=True)
+class TabulexAppointmentInput:
+    """Values used when creating or updating a Tabulex appointment."""
+
+    date: date
+    start_time: time
+    kind: str
+    pickup: str = ""
+    description: str = ""
+    before_start_time: time = time(14, 0)
+    end_time: time | None = None
+    end_date: date | None = None
+    recurrence: TabulexRecurrence = TabulexRecurrence.NONE
+    weekdays: tuple[TabulexWeekday, ...] = ()
+    ignore_on_holiday: bool = True
+    transport: str = ""
+    owner_id: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.kind.strip():
+            raise ValueError("kind must not be empty")
+        for name, value in (
+            ("start_time", self.start_time),
+            ("before_start_time", self.before_start_time),
+            ("end_time", self.end_time),
+        ):
+            if value is None:
+                continue
+            if value.minute not in (0, 15, 30, 45) or value.second or value.microsecond:
+                raise ValueError(f"{name} must use 15-minute increments")
+        if self.recurrence is TabulexRecurrence.NONE:
+            if self.end_date is not None or self.weekdays:
+                raise ValueError("Non-recurring appointments cannot have an end date or weekdays")
+        elif self.end_date is None or not self.weekdays:
+            raise ValueError("Recurring appointments require an end date and weekdays")
+        if len(set(self.weekdays)) != len(self.weekdays):
+            raise ValueError("weekdays must not contain duplicates")
+
+
+@dataclass(frozen=True)
+class TabulexAppointment:
+    """A typed appointment from the Tabulex guardian appointment list."""
+
+    date: date
+    summary: str
+    id: str | None = None
+    kind: str = ""
+    start_time: time | None = None
+    pickup: str = ""
+    description: str = ""
+    before_start_time: time | None = None
+    end_time: time | None = None
+    end_date: date | None = None
+    recurrence: TabulexRecurrence = TabulexRecurrence.NONE
+    weekdays: tuple[TabulexWeekday, ...] = ()
+    ignore_on_holiday: bool = True
+    transport: str = ""
+    owner_id: str = ""
+
+    def as_input(self) -> TabulexAppointmentInput:
+        """Copy the complete editable view into an update input."""
+        if self.start_time is None:
+            raise ValueError("Appointment has no parsed start time")
+        return TabulexAppointmentInput(
+            date=self.date,
+            start_time=self.start_time,
+            kind=self.kind,
+            pickup=self.pickup,
+            description=self.description,
+            before_start_time=self.before_start_time or time(14, 0),
+            end_time=self.end_time,
+            end_date=self.end_date,
+            recurrence=self.recurrence,
+            weekdays=self.weekdays,
+            ignore_on_holiday=self.ignore_on_holiday,
+            transport=self.transport,
+            owner_id=self.owner_id,
+        )
+
+
+@dataclass(frozen=True)
+class TabulexHolidayDay:
+    """One date in a holiday-attendance registration period."""
+
+    id: str
+    date: date
+    attending: bool | None = None
+    start_time: time | None = None
+    end_time: time | None = None
+    joint_care: bool = False
+
+
+@dataclass(frozen=True)
+class TabulexHolidayPeriod:
+    """A holiday registration window and its individual dates."""
+
+    title: str
+    days: tuple[TabulexHolidayDay, ...] = ()
+
+
+@dataclass(frozen=True)
+class TabulexIdentityPreferences:
+    """Non-sensitive visibility preferences from the child's identity card."""
+
+    show_on_public_lists: bool = False
+    show_birthday: bool = False
+    show_picture_on_info_board: bool = False
+
+
+@dataclass(frozen=True)
+class TabulexOverview:
+    """One-request snapshot used as the initial Tabulex POC contract."""
+
+    dashboard: TabulexDashboard
+    navigation: tuple[TabulexNavigationItem, ...] = ()
+    appointment_types: tuple[TabulexAppointmentType, ...] = ()
+    capabilities: TabulexCapabilities = field(default_factory=TabulexCapabilities)
 
 
 # ---------------------------------------------------------------------------

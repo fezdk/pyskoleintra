@@ -28,7 +28,6 @@ from .exceptions import (
     SkoleintraError,
 )
 from .models import (
-    AgendaItem,
     Album,
     Attachment,
     CalendarEvent,
@@ -48,19 +47,32 @@ from .models import (
     ScheduleLesson,
     SfoInfo,
     StudentContact,
+    TabulexAgendaItem,
+    TabulexAppointment,
+    TabulexAppointmentInput,
+    TabulexAppointmentType,
+    TabulexCapabilities,
     TabulexDashboard,
+    TabulexHolidayDay,
+    TabulexHolidayPeriod,
+    TabulexIdentityPreferences,
+    TabulexNavigationItem,
     TabulexNewsItem,
+    TabulexOverview,
+    TabulexRecurrence,
+    TabulexWeekday,
     WeeklyPlan,
 )
+from .tabulex import Tabulex
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     # Main classes
     "Skoleintra",
     "Child",
+    "Tabulex",
     # Models
-    "AgendaItem",
     "Album",
     "Attachment",
     "CalendarEvent",
@@ -80,8 +92,20 @@ __all__ = [
     "ScheduleLesson",
     "SfoInfo",
     "StudentContact",
+    "TabulexAgendaItem",
+    "TabulexAppointment",
+    "TabulexAppointmentInput",
+    "TabulexAppointmentType",
+    "TabulexCapabilities",
     "TabulexDashboard",
+    "TabulexHolidayDay",
+    "TabulexHolidayPeriod",
+    "TabulexIdentityPreferences",
+    "TabulexNavigationItem",
     "TabulexNewsItem",
+    "TabulexOverview",
+    "TabulexRecurrence",
+    "TabulexWeekday",
     "WeeklyPlan",
     # Exceptions
     "AuthenticationError",

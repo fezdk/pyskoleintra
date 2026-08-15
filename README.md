@@ -2,7 +2,7 @@
 
 Python client library for [Skoleintra](https://skoleintra.dk) — the Danish school intranet platform used by many private and free schools (friskoler).
 
-Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO/Tabulex dashboards and appointments, photos, student contacts, documents, and timetables.
+Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO/Tabulex dashboards, appointments, holiday attendance and visibility preferences, photos, student contacts, documents, and timetables.
 
 ## Installation
 
@@ -406,6 +406,15 @@ for day in days:
 ### SFO & Tabulex
 
 ```python
+from dataclasses import replace
+from datetime import date, time
+
+from pyskoleintra import (
+    TabulexAppointmentInput,
+    TabulexRecurrence,
+    TabulexWeekday,
+)
+
 sfo = child.sfo()
 
 print(sfo.base_url)           # "https://..."
@@ -416,57 +425,77 @@ print(sfo.weekly_plan)
 print(sfo.news)
 print(sfo.shortcuts)
 
-# The Tabulex URL is discovered dynamically through the SFO page and SSO.
-dashboard = child.tabulex_dashboard()
+# Tabulex owns its own SSO navigation, routes, parsers, and models.
+tabulex = child.tabulex
+overview = tabulex.overview()  # One landing-page request
+dashboard = overview.dashboard
 print(dashboard.status)
 print(dashboard.news)
 print(dashboard.birthdays)
 for item in dashboard.appointments:
-    print(item.date)    # datetime
-    print(item.fields)
+    print(item.date, item.time, item.title)
 
-# The legacy agenda parser remains available separately.
-agenda = child.tabulex_agenda()
+for section in overview.navigation:
+    print(section.title, section.path, section.badge_count)
 
-# Read-only access to the guardian sub-pages is allow-listed.
-appointments_html = child.tabulex_guardian_page("/guardian/appointments")
-messages_html = child.tabulex_guardian_page("/guardian/messages")
-appointments = child.tabulex_appointments()
-appointment_id = appointments[0].fields["eventplannedid"]
+print(overview.capabilities.can_create_appointment)
+print(overview.capabilities.can_report_sick)
+print(overview.capabilities.can_create_day_off)
 
-# Build a create payload from the live appointment-type choices, then submit it.
-values = child.tabulex_prepare_appointment(
-    date="20/08-26",
-    time="14:30",
+# Appointment types are discovered from the current installation.
+for appointment_type in overview.appointment_types:
+    print(appointment_type.id, appointment_type.name)
+
+# Read current holiday-attendance registrations.
+for period in tabulex.holiday_periods():
+    print(period.title)
+    for day in period.days:
+        print(day.date, day.attending, day.start_time, day.end_time)
+
+# Read only the non-sensitive visibility settings needed by integrations.
+preferences = tabulex.identity_preferences()
+print(preferences.show_birthday)
+
+appointments = tabulex.appointments()
+appointment_id = appointments[0].id
+
+appointment = TabulexAppointmentInput(
+    date=date(2026, 8, 20),
+    start_time=time(14, 30),
     kind="Hentes",
     pickup="Forælder",
 )
-child.tabulex_submit_appointment(values)
+tabulex.create_appointment(appointment)
 
-# Editing preserves the supplied appointment ID. The prepare call returns the
-# current appointment so an application can present its own confirmation UI.
-current, values = child.tabulex_prepare_edit_appointment(
+# Start from the parsed edit view so omitted fields are preserved.
+current = tabulex.appointment(appointment_id)
+updated = replace(current.as_input(), start_time=time(15, 0))
+tabulex.update_appointment(
     appointment_id,
-    date="20/08-26",
-    time="15:00",
-    kind="Hentes",
-    pickup="Forælder",
+    updated,
 )
-child.tabulex_edit_appointment(appointment_id, values)
 
-# A caller can load the exact row for its own preview before deleting it.
-delete_preview = child.tabulex_prepare_delete_appointment(appointment_id)
-print(delete_preview.fields)
-child.tabulex_delete_appointment(appointment_id)
+# Applications can fetch a typed preview before applying their own policy.
+print(tabulex.appointment(appointment_id))
+tabulex.delete_appointment(appointment_id)
 
-# These lower-level methods accept field mappings for the corresponding modal.
-child.tabulex_submit_holiday(holiday_values)
-child.tabulex_report_sick(sick_values)
+# The complete appointment modal is represented when recurrence is needed.
+recurring = TabulexAppointmentInput(
+    date=date(2026, 8, 20),
+    start_time=time(15, 0),
+    kind="Hentes",
+    end_date=date(2026, 9, 30),
+    recurrence=TabulexRecurrence.WEEKLY,
+    weekdays=(TabulexWeekday.THURSDAY,),
+    ignore_on_holiday=True,
+)
 ```
 
-**Models:** `SfoInfo`, `AgendaItem`, `TabulexDashboard`, `TabulexNewsItem`
+**POC read model:** `TabulexOverview` combines the dashboard, dynamically discovered navigation, appointment types, and supported-action flags from one response. Separate read methods expose holiday periods and the three non-sensitive identity-card visibility preferences.
 
-**Write semantics:** The library performs a requested write without interactive confirmation. Applications are responsible for preview and confirmation policy. Appointment IDs are validated as numeric, and edit payloads cannot override the ID passed to `tabulex_edit_appointment()`.
+**Write semantics:** The library performs a requested write without interactive confirmation. Applications are responsible for preview and confirmation policy. Appointment IDs are validated as numeric, and update payloads cannot override the ID passed to `update_appointment()`.
+
+Only appointment create/update/delete writes are implemented. Holiday attendance, day off, sickness, activity, and identity-card operations remain read-only until their POST contracts have been separately approved and tested. Capability flags describe what the upstream UI exposes; they do not perform an action.
 
 **Parser notes:** The SFO page involves a complex redirect chain (integration -> external site -> SAML form submissions). Only forms containing known identity-provider fields are auto-submitted; ordinary SFOweb forms are never treated as redirects. The Tabulex URL, including its installation-specific query parameters, is discovered dynamically rather than hardcoded.
 
@@ -493,10 +522,12 @@ for item in menu:
 pyskoleintra/
   __init__.py          # Public API exports
   client.py            # Skoleintra — auth, session, child discovery
-  child.py             # Child — per-child data access (all endpoints)
+  child.py             # Child — per-child Skoleintra data access
+  tabulex.py           # Tabulex — child-scoped IST SFO client
+  sso.py               # Shared SAML/WS-Federation form handling
   http.py              # HttpSession — requests wrapper, cookies, caching
   auth.py              # SAML/SSO authentication flow
-  models.py            # All dataclasses (20+ models)
+  models.py            # Shared and Tabulex domain models
   exceptions.py        # Exception hierarchy
   parsers/
     common.py          # Shared utilities (BeautifulSoup, Danish dates, etc.)
@@ -511,20 +542,21 @@ pyskoleintra/
     documents.py       # School documents
     schedule.py        # Weekly timetable
     frontpage.py       # Navigation menu, child discovery
-    sfo.py             # SFO + Tabulex integration
+    sfo.py             # Legacy Infoweb SFO front page
+    tabulex.py         # Tabulex dashboard, appointments, holidays, preferences
 ```
 
 ### Request flow
 
 ```
-User code -> Child.method() -> HttpSession.get(url) -> Skoleintra server
+User code -> Child/Tabulex method -> HttpSession.get(url) -> upstream server
                                     |
                               [cache check]
                                     |
                               Parser.parse(html/json) -> Model dataclass
 ```
 
-1. `Child` methods build the full URL and call `HttpSession.get()`
+1. `Child` and `Tabulex` methods build the full URL and call `HttpSession.get()`
 2. `HttpSession` handles cookies, redirects, auto-relogin on 302, and optional caching
 3. The raw HTML/JSON response is passed to the appropriate parser
 4. Parsers return typed dataclass instances
@@ -757,6 +789,15 @@ from pyskoleintra import (
 | `news` | `str` | Text from the Infoweb SFO news section |
 | `shortcuts` | `dict[str, str]` | Named links discovered on the SFO front page |
 
+### `TabulexOverview`
+
+| Field | Type | Description |
+|---|---|---|
+| `dashboard` | `TabulexDashboard` | Status, notices, week overview, birthdays, and galleries |
+| `navigation` | `tuple[TabulexNavigationItem, ...]` | Guardian sections discovered from the live side menu |
+| `appointment_types` | `tuple[TabulexAppointmentType, ...]` | Installation-specific appointment choices |
+| `capabilities` | `TabulexCapabilities` | Whether the live UI exposes appointment, sick, day-off, and activity actions |
+
 ### `TabulexDashboard`
 
 | Field | Type | Description |
@@ -764,7 +805,7 @@ from pyskoleintra import (
 | `status` | `str` | Current child status shown by Tabulex |
 | `news` | `list[TabulexNewsItem]` | News and notice panels |
 | `week_label` | `str` | Label for the displayed week |
-| `appointments` | `list[AgendaItem]` | Appointments shown on the dashboard |
+| `appointments` | `list[TabulexAgendaItem]` | Typed entries shown in the week overview |
 | `birthdays` | `list[str]` | Birthday entries, when present |
 | `birthday_message` | `str` | Full text from the birthday panel |
 | `galleries` | `list[str]` | Gallery labels shown on the dashboard |
@@ -776,12 +817,85 @@ from pyskoleintra import (
 | `title` | `str` | Panel title |
 | `content` | `str` | Panel text |
 
-### `AgendaItem`
+### `TabulexAgendaItem`
 
 | Field | Type | Description |
 |---|---|---|
-| `date` | `datetime` | Date of the agenda entry |
-| `fields` | `dict[str, str]` | Dynamic key-value fields (e.g. `{"time": "14:00", "activity": "Frileg"}`) |
+| `date` | `date` | Agenda date, with year inferred from the displayed week |
+| `title` | `str` | Main appointment/activity text |
+| `time` | `time \| None` | Parsed clock time when the page contains one |
+| `time_text` | `str` | Original time label, including non-clock labels |
+| `description` | `str` | Additional agenda fields flattened as text |
+
+### `TabulexAppointment`
+
+| Field | Type | Description |
+|---|---|---|
+| `date` | `date` | Appointment date |
+| `summary` | `str` | Complete human-readable row text |
+| `id` | `str \| None` | Numeric Tabulex appointment ID when exposed by the page |
+| `kind` | `str` | Appointment type, such as `"Hentes"` or `"Gå hjem"` |
+| `start_time` | `time \| None` | Appointment time when present |
+| `pickup` | `str` | Person or description following `"af"` |
+| `description` | `str` | Free-text description from the edit view |
+| `before_start_time` | `time \| None` | Before-start time from the edit view |
+| `end_time` | `time \| None` | Optional end time |
+| `end_date` | `date \| None` | Recurrence end date |
+| `recurrence` | `TabulexRecurrence` | None, weekly, or every other week |
+| `weekdays` | `tuple[TabulexWeekday, ...]` | Selected recurrence weekdays |
+| `ignore_on_holiday` | `bool` | Whether recurring entries are skipped during holidays |
+| `transport` | `str` | Optional transport value |
+| `owner_id` | `str` | Optional playdate/owner actor ID |
+
+`as_input()` copies every parsed edit value into a `TabulexAppointmentInput`. This is the safe basis for a UI preview and partial edit with `dataclasses.replace()`.
+
+### `TabulexAppointmentInput`
+
+| Field | Type | Description |
+|---|---|---|
+| `date` | `date` | Appointment date |
+| `start_time` | `time` | Appointment time in a 15-minute increment |
+| `kind` | `str` | Name of a type returned by `appointment_types()` |
+| `pickup` | `str` | Optional pickup person or description |
+| `description` | `str` | Optional free-text description |
+| `before_start_time` | `time` | Tabulex before-start time, defaulting to 14:00 |
+| `end_time` | `time \| None` | Optional end time in a 15-minute increment |
+| `end_date` | `date \| None` | Required end date for recurring appointments |
+| `recurrence` | `TabulexRecurrence` | Recurrence mode; defaults to none |
+| `weekdays` | `tuple[TabulexWeekday, ...]` | Required weekdays for recurrence |
+| `ignore_on_holiday` | `bool` | Skip recurrence during holidays; defaults to true |
+| `transport` | `str` | Optional transport value |
+| `owner_id` | `str` | Optional selected playdate/owner actor ID |
+
+### `TabulexAppointmentType`
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `str` | Installation-specific Tabulex type ID |
+| `name` | `str` | Display name used when constructing an appointment |
+
+### `TabulexHolidayPeriod` / `TabulexHolidayDay`
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | `str` | Holiday registration title, such as a named school holiday |
+| `days` | `tuple[TabulexHolidayDay, ...]` | Individual registration dates in the period |
+| `TabulexHolidayDay.id` | `str` | Upstream day ID needed by a future approved write contract |
+| `TabulexHolidayDay.date` | `date` | Registration date |
+| `TabulexHolidayDay.attending` | `bool \| None` | True for attending, false for free, none when unanswered |
+| `TabulexHolidayDay.start_time` | `time \| None` | Registered/available arrival time |
+| `TabulexHolidayDay.end_time` | `time \| None` | Registered/available departure time |
+| `TabulexHolidayDay.joint_care` | `bool` | Whether the date uses joint care |
+
+### `TabulexIdentityPreferences`
+
+| Field | Type | Description |
+|---|---|---|
+| `show_on_public_lists` | `bool` | Child visibility on public lists |
+| `show_birthday` | `bool` | Birthday visibility on the dashboard |
+| `show_picture_on_info_board` | `bool` | Picture visibility on the information board |
+
+No phone numbers, email addresses, contact data, free-text permissions, or image fields are returned by `identity_preferences()`.
 
 ### `MenuItem`
 
