@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
+from urllib.parse import urlencode
 
 from .exceptions import NotAuthorizedError, ParseError
 from .models import (
@@ -133,6 +135,60 @@ class Child:
         """Fetch the list of unread messages."""
         html = self._get("messages/unread")
         return msg_parser.parse_unread_messages_list(html)
+
+    def set_messages_read_status(
+        self,
+        message_ids: str | int | Iterable[str | int],
+        *,
+        read: bool,
+    ) -> None:
+        """Mark one or more messages as read or unread.
+
+        SkoleIntra's message UI uses one generic endpoint for both operations.
+        The identifiers are numeric message IDs, not conversation UUIDs.
+
+        Args:
+            message_ids: One message ID or an iterable of message IDs.
+            read: ``True`` to mark the messages read, ``False`` to mark them unread.
+        """
+        raw_ids = (
+            [message_ids]
+            if isinstance(message_ids, (str, int))
+            else list(message_ids)
+        )
+        normalized_ids = [str(message_id).strip() for message_id in raw_ids]
+        if not normalized_ids:
+            raise ValueError("At least one message ID is required")
+        if any(not message_id.isdecimal() for message_id in normalized_ids):
+            raise ValueError("Message IDs must be numeric")
+
+        query = urlencode(
+            [
+                *(("messageIds", message_id) for message_id in normalized_ids),
+                ("readFlag", str(bool(read)).lower()),
+            ]
+        )
+        response = self._http.post(
+            f"{self._url('messages/changemessagestatus')}?{query}"
+        )
+        if not 200 <= response.status_code < 300:
+            raise ParseError(
+                f"Changing message read status returned HTTP {response.status_code}"
+            )
+
+    def mark_messages_read(
+        self,
+        message_ids: str | int | Iterable[str | int],
+    ) -> None:
+        """Mark one or more messages as read."""
+        self.set_messages_read_status(message_ids, read=True)
+
+    def mark_messages_unread(
+        self,
+        message_ids: str | int | Iterable[str | int],
+    ) -> None:
+        """Mark one or more messages as unread."""
+        self.set_messages_read_status(message_ids, read=False)
 
     def message(
         self,

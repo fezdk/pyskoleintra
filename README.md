@@ -178,6 +178,20 @@ The `message()` method supports three sources:
 - `source="outbox"` — fetch from sent messages
 - `source="thread"` — fetch all messages in a conversation; requires `thread_id` (UUID from `MessageThread.thread_id`) and `message_id` (numeric from `MessageThread.latest_message_id`)
 
+#### Mark messages read or unread
+
+Message status is changed explicitly with numeric message IDs:
+
+```python
+child.mark_messages_read(msg.id)
+child.mark_messages_unread([first.id, second.id])
+
+# The generic form is also available:
+child.set_messages_read_status(msg.id, read=False)
+```
+
+Reading a conversation with `source="thread"` does not change its read status.
+
 #### Search messages
 
 ```python
