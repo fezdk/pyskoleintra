@@ -6,12 +6,14 @@ methods to fetch all data sources available for that child.
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from collections.abc import Iterable
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin, urlsplit
 
 from .exceptions import NotAuthorizedError, ParseError
 from .models import (
@@ -27,6 +29,7 @@ from .models import (
     MessageThread,
     Photo,
     ReadingContract,
+    ReadingContractBook,
     ReadingContractEntry,
     ScheduleDay,
     SfoInfo,
@@ -308,24 +311,274 @@ class Child:
     # Reading contract (læsekontrakt)
     # -----------------------------------------------------------------------
 
-    def reading_contracts(self) -> list[ReadingContract]:
+    def reading_contracts(self, *, refresh: bool = False) -> list[ReadingContract]:
         """Fetch reading contracts via the AJAX API.
 
         The reading contracts page is a Vue.js SPA that loads data from an API
         endpoint. We first fetch the page to discover the API URL, then call it.
+        Set ``refresh=True`` to bypass the optional development response cache.
 
         Returns:
             List of :class:`ReadingContract` instances with full details
             including books and progress.
         """
-        html = self._get("readingcontracts/Index")
-        api_url = rc_parser.extract_contracts_api_url(html)
-        if not api_url:
+        provider = self._reading_contract_provider(refresh=refresh)
+        key = self._reading_contract_list_key(provider)
+        if key is None:
             return []
+        return self._reading_contract_list(provider, key, refresh=refresh)
 
-        full_url = f"{self._base_url}{api_url}"
-        resp = self._http.get(full_url)
-        return rc_parser.parse_reading_contracts_json(resp.text)
+    def reading_contract_books(self, contract_id: int) -> list[ReadingContractBook]:
+        """Fetch the books already registered in one contract, bypassing caches.
+
+        Books have no separate ID: reuse their exact ``title`` and ``author``
+        when listing entries or adding another reading of the same book.
+        """
+        _, contract = self._reading_contract_context(contract_id)
+        return contract.books
+
+    def reading_contract_entries(
+        self, contract_id: int, *, title: str, author: str,
+    ) -> list[ReadingContractEntry]:
+        """Fetch one book's individual readings, including IDs, bypassing caches."""
+        self._validate_reading_book(title, author)
+        provider, contract = self._reading_contract_context(contract_id)
+        return self._reading_entries(provider, contract.id, title, author)
+
+    def add_reading_contract_entry(
+        self, contract_id: int, *, title: str, author: str, amount: int,
+    ) -> ReadingContractEntry:
+        """Add exactly one reading for today and return its verified server ID.
+
+        ``amount`` is 1–999 minutes or pages, according to the contract's
+        ``is_page_used_for_count`` flag. Reusing title/author adds to that book;
+        new title/author values create a book through the same single request.
+        The server assigns the date; backdating is not supported by this form.
+
+        A POST is never retried. If verification fails, the write may have
+        succeeded: inspect fresh entries before deciding whether to retry.
+        """
+        self._validate_reading_book(title, author)
+        if type(amount) is not int or not 1 <= amount <= 999:
+            raise ValueError("Reading amount must be an integer between 1 and 999")
+        provider, contract = self._reading_contract_context(contract_id, writable=True)
+        save_url = self._reading_contract_endpoint(provider, "SaveRecord")
+        before = self._reading_entries(provider, contract.id, title, author)
+        before_ids = {entry.id for entry in before}
+        self._reading_contract_post(save_url, {
+            "contractId": contract.id,
+            "studentId": contract.student_id,
+            "progressRecordModel[Author]": author,
+            "progressRecordModel[Title]": title,
+            "progressRecordModel[ReadPagesCount]": amount,
+        })
+        try:
+            after = self._reading_entries(provider, contract.id, title, author)
+        except Exception as exc:
+            raise ParseError(
+                "Reading may have been added, but verification failed; "
+                "inspect entries before retrying"
+            ) from exc
+        added = [entry for entry in after if entry.id not in before_ids]
+        if (
+            len(added) != 1
+            or added[0].read_pages_count != amount
+            or not before_ids.issubset({entry.id for entry in after})
+        ):
+            raise ParseError(
+                "Could not uniquely identify the added reading; "
+                "the write may have succeeded. Inspect entries before retrying"
+            )
+        return added[0]
+
+    def update_reading_contract_entry(
+        self, entry: ReadingContractEntry, *, amount: int,
+    ) -> ReadingContractEntry:
+        """Set one reading's minutes/pages to ``amount`` and return the updated entry.
+
+        ``amount`` is the new total for this registration (0–999), not an
+        increment. The ID, date, title, and author are preserved. Zero keeps
+        the entry; use ``delete_reading_contract_entry`` to remove it.
+
+        The supplied entry must still match fresh server data. An unchanged
+        amount returns the fresh entry without posting. Otherwise, exactly one
+        POST is made and its result verified, including the other existing
+        entries in the book. Keep the returned entry for subsequent edits or
+        deletion: the original object is not modified and becomes stale.
+
+        A POST is never retried. If verification fails, the write may have
+        succeeded: inspect fresh entries before deciding whether to retry.
+        """
+        if type(amount) is not int or not 0 <= amount <= 999:
+            raise ValueError("Reading amount must be an integer between 0 and 999")
+        provider, contract, before, current = self._reading_entry_context(entry)
+        if amount == current.read_pages_count:
+            return current
+        update_url = self._reading_contract_endpoint(
+            provider, "UpdatePagesCountOfProgressRecordUrl",
+        )
+        self._reading_contract_post(update_url, {
+            "recordToUpdate[studentId]": contract.student_id,
+            "recordToUpdate[contractId]": contract.id,
+            "recordToUpdate[recordId]": current.id,
+            "pagesCount": amount,
+        })
+        try:
+            after = self._reading_entries(provider, contract.id, current.title, current.author)
+        except Exception as exc:
+            raise ParseError(
+                "Reading may have been updated, but verification failed; "
+                "inspect entries before retrying"
+            ) from exc
+        entries_by_id = {item.id: item for item in after}
+        updated = entries_by_id.get(current.id)
+        expected = replace(current, pages=str(amount), read_pages_count=amount)
+        if updated is None or updated != expected:
+            raise ParseError(
+                "Reading update could not be verified; inspect fresh entries before retrying"
+            )
+        if any(entries_by_id.get(item.id) != item for item in before if item.id != current.id):
+            raise ParseError("Other reading entries changed during update; inspect fresh entries")
+        return updated
+
+    def delete_reading_contract_entry(self, entry: ReadingContractEntry) -> None:
+        """Delete exactly the supplied entry after checking it against fresh data.
+
+        Pass an entry returned by ``add_reading_contract_entry``,
+        ``update_reading_contract_entry``, or ``reading_contract_entries``.
+        The contract, book, ID, date, and amount must still match. No other
+        entry is selected if it is absent or stale. A POST is never retried;
+        an uncertain result requires a fresh read.
+        """
+        provider, contract, before, _ = self._reading_entry_context(entry)
+        delete_url = self._reading_contract_endpoint(provider, "DeleteReadingProgressRecordUrl")
+        self._reading_contract_post(delete_url, {
+            "recordToDelete[studentId]": contract.student_id,
+            "recordToDelete[contractId]": contract.id,
+            "recordToDelete[recordId]": entry.id,
+        })
+        try:
+            after = self._reading_entries(provider, contract.id, entry.title, entry.author)
+        except Exception as exc:
+            raise ParseError(
+                "Reading may have been deleted, but verification failed; "
+                "inspect entries before retrying"
+            ) from exc
+        if any(item.id == entry.id for item in after):
+            raise ParseError("Reading entry is still present after deletion")
+        remaining = {item.id: item for item in after}
+        if any(remaining.get(item.id) != item for item in before if item.id != entry.id):
+            raise ParseError("Other reading entries changed during deletion; inspect fresh entries")
+
+    def _reading_entry_context(
+        self, entry: ReadingContractEntry,
+    ) -> tuple[dict[str, str], ReadingContract, list[ReadingContractEntry], ReadingContractEntry]:
+        """Verify a single entry against this child's fresh data before changing it."""
+        if not isinstance(entry, ReadingContractEntry):
+            raise ValueError("Expected one ReadingContractEntry")
+        self._validate_reading_id(entry.id, "Entry ID")
+        self._validate_reading_book(entry.title, entry.author)
+        provider, contract = self._reading_contract_context(entry.contract_id, writable=True)
+        entries = self._reading_entries(provider, contract.id, entry.title, entry.author)
+        current = next((item for item in entries if item.id == entry.id), None)
+        if current is None:
+            raise ValueError("Reading entry is not present in this child's contract and book")
+        if current.date != entry.date or current.read_pages_count != entry.read_pages_count:
+            raise ValueError("Reading entry has changed; fetch it again before changing it")
+        return provider, contract, entries, current
+
+    @staticmethod
+    def _validate_reading_id(value: int, label: str) -> None:
+        if type(value) is not int or value <= 0:
+            raise ValueError(f"{label} must be a positive integer")
+
+    @staticmethod
+    def _validate_reading_book(title: str, author: str) -> None:
+        if not isinstance(title, str) or not title.strip():
+            raise ValueError("Book title must not be empty")
+        if not isinstance(author, str) or not author.strip():
+            raise ValueError("Book author must not be empty")
+
+    def _reading_contract_provider(self, *, refresh: bool) -> dict[str, str]:
+        response = self._http.get(self._url("readingcontracts/Index"), use_cache=not refresh)
+        if response.status_code != 200:
+            raise ParseError(f"Reading contracts page returned HTTP {response.status_code}")
+        return rc_parser.extract_data_provider_settings(response.text)
+
+    @staticmethod
+    def _reading_contract_list_key(provider: dict[str, str]) -> str | None:
+        return next((key for key in (
+            "GetStudentClassReadingContracts", "GetStudentGroupReadingContracts",
+        ) if key in provider), None)
+
+    def _reading_contract_endpoint(self, provider: dict[str, str], key: str) -> str:
+        if key not in provider:
+            raise ParseError(f"Reading contracts endpoint {key} is unavailable")
+        url = urljoin(self._url("readingcontracts/Index"), provider[key])
+        parts = urlsplit(url)
+        base = urlsplit(self._base_url)
+        if (parts.scheme, parts.netloc) != (base.scheme, base.netloc):
+            raise ParseError("Reading contracts endpoint must stay on the school's origin")
+        if not parts.path.startswith(f"{self.parent_path}/readingcontracts/"):
+            raise ParseError("Reading contracts endpoint belongs to another child or feature")
+        return url
+
+    def _reading_contract_list(
+        self, provider: dict[str, str], key: str, *, refresh: bool,
+    ) -> list[ReadingContract]:
+        url = self._reading_contract_endpoint(provider, key)
+        text = self._reading_contract_get(url, refresh=refresh)
+        return rc_parser.parse_reading_contracts_json(text)
+
+    def _reading_contract_context(
+        self, contract_id: int, *, writable: bool = False,
+    ) -> tuple[dict[str, str], ReadingContract]:
+        self._validate_reading_id(contract_id, "Contract ID")
+        provider = self._reading_contract_provider(refresh=True)
+        key = self._reading_contract_list_key(provider)
+        if key is None:
+            raise ParseError("Reading contracts list endpoint is unavailable")
+        contracts = self._reading_contract_list(provider, key, refresh=True)
+        matches = [contract for contract in contracts if contract.id == contract_id]
+        if len(matches) != 1:
+            raise ValueError("Contract ID must identify one of this child's reading contracts")
+        contract = matches[0]
+        if writable:
+            self._validate_reading_id(contract.student_id, "Student ID")
+            if contract.is_read_only:
+                raise NotAuthorizedError("Reading contract is read-only")
+        return provider, contract
+
+    def _reading_entries(
+        self, provider: dict[str, str], contract_id: int, title: str, author: str,
+    ) -> list[ReadingContractEntry]:
+        url = self._reading_contract_endpoint(provider, "GetRecordsForBook")
+        query = urlencode({"contractId": contract_id, "author": author, "title": title})
+        text = self._reading_contract_get(url + ("&" if "?" in url else "?") + query, refresh=True)
+        return rc_parser.parse_reading_contract_entries_json(
+            text, contract_id=contract_id, title=title, author=author,
+        )
+
+    def _reading_contract_get(self, url: str, *, refresh: bool) -> str:
+        response = self._http.get(url, use_cache=not refresh)
+        if response.status_code != 200:
+            raise ParseError(f"Reading contracts request returned HTTP {response.status_code}")
+        try:
+            data = json.loads(response.text)
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise ParseError("Invalid reading contracts JSON response") from exc
+        if not isinstance(data, list) or any(not isinstance(item, dict) for item in data):
+            raise ParseError("Expected a list of reading contracts or entries")
+        return response.text
+
+    def _reading_contract_post(self, url: str, data: dict) -> None:
+        # No redirects, automatic login callback, or retries for a mutation.
+        response = self._http.post(url, data=data)
+        if response.status_code not in (200, 204):
+            raise ParseError(
+                f"Reading mutation returned HTTP {response.status_code}; "
+                "inspect fresh entries before retrying"
+            )
 
     # -----------------------------------------------------------------------
     # Contact book (kontaktbog)

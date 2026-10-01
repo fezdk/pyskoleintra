@@ -48,10 +48,14 @@ class HttpSession:
         *,
         allow_redirects: bool = False,
         relogin_callback: Callable[[], bool] | None = None,
+        use_cache: bool = True,
     ) -> requests.Response:
-        """Send a GET request, optionally handling login redirects."""
+        """Send a GET request, optionally handling login redirects.
+
+        ``use_cache=False`` bypasses both cache reads and writes for this call.
+        """
         return self._request("GET", url, allow_redirects=allow_redirects,
-                             relogin_callback=relogin_callback)
+                             relogin_callback=relogin_callback, use_cache=use_cache)
 
     def post(
         self,
@@ -117,9 +121,10 @@ class HttpSession:
         data: dict | None = None,
         allow_redirects: bool = False,
         relogin_callback: Callable[[], bool] | None = None,
+        use_cache: bool = True,
     ) -> requests.Response:
-        # Check cache for GET requests (skip POSTs — those are auth/SAML)
-        if method == "GET" and data is None:
+        # Mutations and their verification reads must bypass the development cache.
+        if use_cache and method == "GET" and data is None:
             cached = self._cache_read(method, url)
             if cached is not None:
                 self._last_response = cached
@@ -152,7 +157,7 @@ class HttpSession:
                 self._last_response = resp
 
         # Cache successful GET responses
-        if method == "GET" and data is None:
+        if use_cache and method == "GET" and data is None:
             self._cache_write(method, url, resp)
 
         return resp

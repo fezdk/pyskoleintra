@@ -394,11 +394,13 @@ class ReadingContract:
     is_active: bool
     is_page_used_for_count: bool  # False = minutes, True = pages
     books: list[ReadingContractBook] = field(default_factory=list)
+    student_id: int = 0
+    is_read_only: bool = False
 
 
 @dataclass
 class ReadingContractBook:
-    """A book within a reading contract."""
+    """A book identified within its contract by its exact title and author."""
 
     title: str
     author: str
@@ -407,12 +409,21 @@ class ReadingContractBook:
 
 @dataclass
 class ReadingContractEntry:
-    """Legacy flat entry — kept for backwards compatibility."""
+    """One reading, with its server ID and minutes/pages read.
+
+    The first four fields retain the legacy positional constructor. ``pages``
+    contains the amount as text; ``read_pages_count`` is the typed equivalent
+    and counts minutes when the contract's ``is_page_used_for_count`` is false.
+    """
 
     date: str
     title: str
     pages: str = ""
     comment: str = ""
+    id: int = 0
+    contract_id: int = 0
+    author: str = ""
+    read_pages_count: int = 0
 
 
 # ---------------------------------------------------------------------------

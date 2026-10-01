@@ -2,7 +2,7 @@
 
 Python client library for [Skoleintra](https://skoleintra.dk) — the Danish school intranet platform used by many private and free schools (friskoler).
 
-Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO/Tabulex dashboards, appointments, holiday attendance and visibility preferences, photos, student contacts, documents, and timetables.
+Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO/Tabulex dashboards, appointments, holiday attendance and visibility preferences, photos, student contacts, documents, and timetables. Reading-contract support includes listing books and individual readings, plus adding, editing, and deleting one reading at a time.
 
 ## Installation
 
@@ -298,7 +298,93 @@ for rc in contracts:
         print(book.read_pages_count) # 120 (minutes or pages read for this book)
 ```
 
-**Models:** `ReadingContract`, `ReadingContractBook`
+#### Minutes and pages
+
+The contract determines the unit: `is_page_used_for_count=False` means minutes;
+`True` means pages. Both use the same server fields (`ReadPagesCount`, `Pages`,
+and `pagesCount`), so a field name containing "pages" does not itself imply
+page counting. For example, `amount=20` records 20 minutes on a minutes-based
+contract and 20 pages on a pages-based contract.
+
+There is no unit selector on an individual reading. The library follows the
+contract's unit and does not create contracts or change their settings.
+Page counting is visible in SkoleIntra's own HTML/JavaScript and contract data
+model. Live verification used a minutes-based contract; pages-based behavior
+is covered by synthetic tests and has not been verified against a live
+pages-based contract.
+
+#### Books and individual readings
+
+Books are identified by their exact **title and author within a contract**; the
+API does not expose a separate book ID. Each individual reading has a numeric ID.
+
+| Method on `Child` | Result |
+|---|---|
+| `reading_contracts(refresh=False)` | Contracts, book totals, units, and read-only status |
+| `reading_contract_books(contract_id)` | Books already registered in that contract |
+| `reading_contract_entries(contract_id, title=..., author=...)` | Individual readings with IDs, dates, and amounts |
+| `add_reading_contract_entry(contract_id, title=..., author=..., amount=...)` | The verified new `ReadingContractEntry` |
+| `update_reading_contract_entry(entry, amount=...)` | A new `ReadingContractEntry` with the verified updated amount |
+| `delete_reading_contract_entry(entry)` | `None`, after verifying deletion of that entry |
+
+```python
+contract = next(rc for rc in child.reading_contracts(refresh=True) if rc.is_active)
+books = child.reading_contract_books(contract.id)
+book = books[0]
+
+entries = child.reading_contract_entries(
+    contract.id, title=book.title, author=book.author,
+)
+for entry in entries:
+    print(entry.id, entry.date, entry.read_pages_count)
+```
+
+#### Add, edit, or delete one reading
+
+```python
+# One registration for today: minutes if is_page_used_for_count is False,
+# otherwise pages. Reuse the exact title/author to keep using the same book.
+entry = child.add_reading_contract_entry(
+    contract.id, title=book.title, author=book.author, amount=20,
+)
+print(entry.id)  # The newly created reading's server ID
+
+# Set this registration to 25 minutes/pages, preserving its ID and date.
+# Keep the returned object: the earlier entry still contains the old amount.
+entry = child.update_reading_contract_entry(entry, amount=25)
+
+# Explicitly delete only this registration, for example to clean up a test.
+child.delete_reading_contract_entry(entry)
+```
+
+To start a new book, pass its title and author to `add_reading_contract_entry`.
+One call creates one reading; there is no batch mutation. `amount` must be an
+integer from 1 to 999 when creating a reading. The server assigns today's date,
+as in the web form. Backdating and changing a reading's book are not supported.
+
+`update_reading_contract_entry(entry, amount=...)` sets the new amount for that
+single registration, rather than adding to its previous amount. Editing accepts
+0–999; zero retains the registration. To edit an older reading, pass its object
+from `reading_contract_entries`. The method returns a new verified entry and
+leaves your input object unchanged. An identical amount is checked against fresh
+data and returned without a POST.
+
+Creation compares fresh before/after entry IDs and returns the new entry only
+when the result is unambiguous. Editing and deletion take a `ReadingContractEntry`
+from creation, editing, or a fresh entry listing and check its contract, book, ID,
+date, and amount before posting. Editing verifies the new amount and preserved
+identity; deletion verifies that the entry is gone. Both verify that the other
+existing entries in that book are unchanged. Read-only contracts are rejected
+locally. These checks can detect stale data but are not a server-side lock: avoid
+simultaneous edits of the same reading from multiple clients.
+
+Mutations are **never automatically retried**. If a network or verification
+error occurs, the server may already have applied the change; fetch fresh
+entries before deciding whether to retry. The book/entry methods and mutation
+checks bypass the optional development response cache. Use
+`reading_contracts(refresh=True)` to refresh the contract overview too.
+
+**Models:** `ReadingContract`, `ReadingContractBook`, `ReadingContractEntry`
 
 **Parser notes:** This page is a Vue.js SPA — the HTML contains no reading data. The parser extracts the API URL from a `data-clientlogic-settings-ReadingContracts` JSON attribute on `#sk-reading-contracts`, then calls the AJAX endpoint (`/readingcontracts/GetStudentReadingContracts`) which returns JSON. Note: BeautifulSoup/lxml lowercases HTML attributes, so the attribute must be queried in lowercase.
 
@@ -575,6 +661,11 @@ User code -> Child/Tabulex method -> HttpSession.get(url) -> upstream server
 3. The raw HTML/JSON response is passed to the appropriate parser
 4. Parsers return typed dataclass instances
 
+Reading mutations discover their POST endpoints from the child's reading-contract
+page. Each mutation uses fresh reads before and after its single POST to validate
+the target and verify the result. `HttpSession.get(..., use_cache=False)` bypasses
+both reading and writing the optional response cache for these checks.
+
 ### Parsing strategies
 
 The site uses several different rendering approaches, each requiring a different parsing strategy:
@@ -599,6 +690,28 @@ el.get("data-clientlogic-settings-ReadingContracts")
 # Correct
 el.get("data-clientlogic-settings-readingcontracts")
 ```
+
+## Tests
+
+Install the development dependencies and run the offline test suite:
+
+```bash
+pip install -e '.[dev]'
+python -m pytest tests -q
+```
+
+The tests in `tests/` use synthetic data and do not require credentials or contact
+SkoleIntra. Reading-contract tests cover request payloads, entry IDs, minutes and
+pages, amount validation, stale entries, read-only contracts, cache bypass,
+uncertain writes, and preservation of other existing readings.
+
+`test_live.py` is a separate manual script that logs in using `.env`; it is not
+part of the offline suite. It does not automatically run reading mutations.
+Manual live validation of the new reading methods covered adding to an existing
+book and a new book, editing the same entry from 1 to 2 to 0 minutes, and deleting
+only the created test entries. Original readings and contract summaries were
+compared before and after cleanup. Future live mutation tests should create one
+temporary entry at a time, retain its returned ID, and only clean up that entry.
 
 ## Exceptions
 
@@ -712,6 +825,8 @@ from pyskoleintra import (
 | `is_active` | `bool` | Whether the contract is currently active |
 | `is_page_used_for_count` | `bool` | `True` = pages, `False` = minutes |
 | `books` | `list[ReadingContractBook]` | Books registered under this contract |
+| `student_id` | `int` | Student ID used by the reading mutation endpoints |
+| `is_read_only` | `bool` | Whether the server marks readings in this contract read-only |
 
 ### `ReadingContractBook`
 
@@ -720,6 +835,19 @@ from pyskoleintra import (
 | `title` | `str` | Book title |
 | `author` | `str` | Author name |
 | `read_pages_count` | `int` | Total minutes (or pages) read for this book — sum of all individual reading records |
+
+### `ReadingContractEntry`
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `int` | Server ID of this individual reading |
+| `contract_id` | `int` | Contract containing this reading |
+| `title` | `str` | Exact book title |
+| `author` | `str` | Exact book author |
+| `date` | `str` | Server-formatted reading date |
+| `read_pages_count` | `int` | Minutes or pages read in this registration |
+| `pages` | `str` | Legacy text representation of the same amount |
+| `comment` | `str` | Legacy field; not provided by the reading API |
 
 ### `ContactBookNote`
 
