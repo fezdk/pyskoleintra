@@ -22,6 +22,60 @@ def extract_data_provider_settings(html: str) -> dict[str, str]:
     }
 
 
+def archive_message_links(html: str, *, subject: str, sender: str) -> list[str]:
+    """Find candidate archive copies on one search page, without treating login as empty."""
+    soup = make_soup(html)
+    container = soup.select_one("div.sk-messages-list[data-clientlogic-settings-messages]")
+    if container is None:
+        raise ParseError("Archive message list is unavailable")
+    links = []
+    for row in container.select("li.sk-message-list-item"):
+        if (
+            extract_text(row.select_one(".sk-message-title")) != subject
+            or extract_text(row.select_one(".sk-message-senderrecipient-name")) != sender
+        ):
+            continue
+        link = row.select_one('a[href*="/archive/message/"]')
+        if link is not None:
+            links.append(link["href"])
+    return links
+
+
+def archive_message_matches(html: str, original: MessageDetail) -> bool:
+    """Compare preserved content; archive HTML can discard the original time of day."""
+    soup = make_soup(html)
+    if not original.subject or not original.sender or not original.date:
+        return False
+    if soup.select_one(".sk-message-subject-text") is None or soup.select_one(".sk-message-text") is None:
+        return False
+    archived = parse_message_detail_html(html, "")
+
+    def normalize(text: str) -> str:
+        return " ".join(text.split())
+
+    def without_clock(text: str) -> str:
+        return re.sub(r"\s+\d{1,2}:\d{2}(?::\d{2})?$", "", normalize(text))
+
+    original_text = make_soup(original.content).get_text(" ", strip=True)
+    # Attachment URLs may change when copied. Never accept a match without
+    # verifying each original attachment URL; refuse unsupported copies safely.
+    return (
+        archived.subject == original.subject
+        and archived.sender == original.sender
+        and without_clock(archived.date) == without_clock(original.date)
+        and normalize(archived.content) == normalize(original_text)
+        and archived.attachments == original.attachments
+    )
+
+
+def archive_page_links(html: str) -> list[str]:
+    """Return archive pagination links for the caller to validate against its child."""
+    return [
+        link["href"] for link in make_soup(html).select("a[href]")
+        if re.search(r"/messages/archive/[1-9][0-9]*(?:\?|$)", link["href"])
+    ]
+
+
 def parse_inbox_conversations(html: str) -> list[MessageThread]:
     """Parse the inbox conversations page.
 

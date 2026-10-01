@@ -209,24 +209,46 @@ the server explicitly returns JSON `null`; login pages, HTTP errors and
 unexpected responses raise `ParseError`. The inspected installation returns
 HTTP 500 for a deleted message, so a lookup error alone does not prove absence.
 
-Archive a message after selecting and reviewing its ID:
+Archive a message after selecting and reviewing its ID. **The default moves
+the message out of the inbox and keeps it available in the archive:**
 
 ```python
 archived = child.archive_message(reviewed_message_id)
 assert archived.is_archived is True
+
+# Explicitly keep the original in the inbox instead:
+copied = child.archive_message(another_reviewed_message_id, mode="copy")
 ```
 
-SkoleIntra's current inbox UI **copies** the message to the archive and keeps
-the original in the inbox. `archive_message()` follows that operation and
-returns the freshly verified `MessageDetail`. If the fresh lookup already
-reports an archive copy, it returns without posting again.
+`archive_message(id, *, mode="move")` first saves an archive copy when needed.
+It then finds a readable matching copy in the archive, checks its subject,
+sender, date, text and attachment links, refreshes the original, and deletes
+only that original from the inbox. It checks the archive copy again afterwards.
+An existing matching copy is reused, avoiding duplicates. If no matching copy
+can be verified (including attachment differences), the original is not deleted.
 
-The returned detail keeps the **original inbox message ID**. The archive copy
+`mode="copy"` saves a copy and leaves the original in the inbox. It verifies the
+fresh archive flag; if that flag was already set, it returns without posting.
+Other mode values raise `ValueError` before any request.
+
+**Migration:** commit `9f4adee` introduced `archive_message(id)` as copy-only.
+Callers that want that behavior must now pass `mode="copy"`. Callers using the
+default should remove the message from their inbox view only after success.
+
+Both modes return a `MessageDetail` snapshot with `is_archived=True` and the
+**original inbox message ID**. After a move, it is a snapshot taken before
+inbox deletion, not a currently accessible inbox message. The archive copy
 has a separate ID in the archive UI; do not pass that ID to `inbox_message()`,
 `archive_message()` or `delete_message()`. The inspected archive list and detail
 offer deletion of an archive copy, but no unarchive or move-to-inbox action.
-With the copy operation above, the original is already in the inbox. Archive
-copy deletion has not been tested and is not exposed by the library.
+The library exposes neither archive-copy deletion nor restoration to the inbox.
+Archive detail HTML can display `00:00` instead of the original send time; the
+returned snapshot retains the original date string.
+
+Moving uses the separately verified copy and delete operations. The legacy
+UI's `movetoarchive` form was observed to move successfully while returning
+HTTP 500, and to duplicate a message already copied to the archive. The library
+therefore does not use that form.
 
 Deletion is a separate, explicit call:
 
@@ -246,21 +268,24 @@ message UI; an archive copy is not a restore API.
 
 Both mutation methods accept one positive numeric ID (`int` or ASCII decimal
 `str`). They currently support received inbox messages only. They do not expose
-batch operations, sent-message deletion, archive deletion or a combined move
-operation. A lookup returning explicit `null` makes mutations raise `ValueError`;
+batch operations, sent-message deletion or archive deletion.
+A lookup returning explicit `null` makes mutations raise `ValueError`;
 HTTP errors for missing messages still raise `ParseError`. Unsupported
 mailbox/delete access raises `NotAuthorizedError`.
 
-The methods read fresh data before at most one POST. Archiving checks the
-archive flag with a fresh lookup afterwards; deletion checks the returned
-count, or falls back to a fresh lookup if no count is provided. They do not
-automatically retry a POST, follow redirects or log in again during it. A
-network error or failed verification can mean the operation already succeeded:
+The methods bypass the development cache for preflight and verification.
+Copy-only and deletion each make at most one POST; a move makes at most one
+copy POST and one delete POST. **Moving is not atomic:** failure can leave an
+archive copy alongside the original inbox message, or leave deletion uncertain.
+They never automatically retry a POST, follow redirects or log in again during
+it. A network error or failed verification can mean the operation succeeded:
 inspect the web inbox/archive and, when available, `inbox_message(id)` before
-retrying. Single-message lookup, deletion and archiving have been checked live:
-the deleted message disappeared from inbox search; archiving created one visible
-archive copy while preserving the original's content and read status. Repeating
-the archive call performed no second POST and created no duplicate copy.
+retrying. Single-message lookup, deletion, copy-only archiving and default
+moving have been checked live. Copying preserved the inbox original and its
+read status; repeating the copy call created no duplicate. Moving created one
+readable archive copy, removed only the selected inbox message and preserved
+the previous archive entries. Failure and partial-result handling are covered
+by `tests/test_message_mutations.py`.
 
 #### Search messages
 

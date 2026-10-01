@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from collections.abc import Iterable
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 from urllib.parse import urlencode, urljoin, urlsplit
 
 from .exceptions import NetworkError, NotAuthorizedError, ParseError
@@ -253,30 +254,110 @@ class Child:
         data = self._inbox_message_data(provider, message_id)
         return msg_parser.parse_message_detail_json(json.dumps(data))[0] if data else None
 
-    def archive_message(self, message_id: str | int) -> MessageDetail:
-        """Copy exactly one received message to the archive, keeping it in the inbox.
+    def archive_message(
+        self, message_id: str | int, *, mode: Literal["move", "copy"] = "move",
+    ) -> MessageDetail:
+        """Move one received message to the archive by default.
 
-        Checks fresh data before and after one POST, and returns the message
-        with ``is_archived=True``. An already archived message is a no-op.
-        POSTs are never retried; inspect ``inbox_message()`` after an uncertain
-        result. Sent messages and bulk/thread operations are not supported.
+        Use ``mode="copy"`` to keep the original in the inbox. Both modes
+        return a snapshot with the original inbox ID and ``is_archived=True``;
+        after a move, that ID no longer identifies a live inbox message.
+
+        Moving verifies a readable archive copy before deleting the original,
+        then checks the copy again. It uses at most one copy POST and one
+        single-message delete POST, with no automatic retries. This is not
+        atomic: a failure can leave a copy in the archive and the original
+        still in the inbox, or an uncertain deletion result.
         """
+        if mode not in ("move", "copy"):
+            raise ValueError("Archive mode must be 'move' or 'copy'")
         message_id = self._message_id(message_id)
         provider = self._message_provider()
         data = self._inbox_message_data(provider, message_id)
         if data is None:
             raise ValueError("Message is not present in this child's inbox")
-        if data["IsCopiedToArchive"]:
-            return msg_parser.parse_message_detail_json(json.dumps(data))[0]
-        url = self._message_endpoint(provider, "CopyConversationMessageToArchiveUrl")
-        self._message_post(url, {"messageId": message_id, "isOutbox": "false"})
-        after = self._verify_message_lookup(provider, message_id)
-        if after is None or after["IsCopiedToArchive"] is not True:
+        if mode == "move":
+            self._require_message_delete_action(data)
+            self._message_endpoint(provider, "BatchDeleteConversationUrl")
+        if not data["IsCopiedToArchive"]:
+            url = self._message_endpoint(provider, "CopyConversationMessageToArchiveUrl")
+            self._message_post(url, {"messageId": message_id, "isOutbox": "false"})
+            data = self._verify_message_lookup(provider, message_id)
+            if data is None or data["IsCopiedToArchive"] is not True:
+                raise ParseError(
+                    "Message archive copy could not be verified; "
+                    "inspect inbox_message() and the archive before retrying"
+                )
+        archived = msg_parser.parse_message_detail_json(json.dumps(data))[0]
+        if mode == "copy":
+            return archived
+        try:
+            copy_url = self._find_archive_copy(archived)
+            # Recheck the original after reading the archive, before deletion.
+            current = self._inbox_message_data(provider, message_id)
+            if current is None or msg_parser.parse_message_detail_json(json.dumps(current))[0] != archived:
+                raise ParseError("Inbox message changed while preparing the archive move")
+            self._require_message_delete_action(current)
+            self._delete_inbox_message(provider, message_id)
+            if not self._archive_copy_matches(copy_url, archived):
+                raise ParseError("Archive copy changed after inbox deletion")
+        except NetworkError as exc:
+            raise NetworkError(
+                "Archive move could not be confirmed; a copy may be saved and inbox "
+                "deletion may have succeeded. Inspect both locations before retrying"
+            ) from exc
+        except (ParseError, NotAuthorizedError) as exc:
             raise ParseError(
-                "Message archive copy could not be verified; "
-                "inspect inbox_message() and the archive before retrying"
+                "Archive move could not be confirmed; inspect inbox and archive "
+                "before retrying. " + str(exc)
+            ) from exc
+        return archived
+
+    def _find_archive_copy(self, original: MessageDetail) -> str:
+        # Search the archive, not the inbox: its IDs belong to a separate namespace.
+        page = 1
+        base = urlsplit(self._base_url)
+        origin = (base.scheme, base.netloc)
+        while True:
+            url = self._url(f"messages/archive/{page}") + "?" + urlencode({"searchRequest": original.subject})
+            response = self._http.get(url, use_cache=False)
+            if response.status_code != 200:
+                raise ParseError(f"Archive search returned HTTP {response.status_code}")
+            links = msg_parser.archive_message_links(
+                response.text, subject=original.subject, sender=original.sender,
             )
-        return msg_parser.parse_message_detail_json(json.dumps(after))[0]
+            for link in links:
+                parts = urlsplit(urljoin(url, link))
+                pattern = re.escape(self.parent_path) + r"/messages/archive/message/[1-9][0-9]*"
+                if (
+                    (parts.scheme, parts.netloc) != origin
+                    or re.fullmatch(pattern, parts.path) is None
+                    or parts.fragment
+                ):
+                    raise ParseError("Archive copy link has an unexpected origin, child, or route")
+                # Discard pagination/search parameters; they cannot select another message.
+                copy_url = parts._replace(query="", fragment="").geturl()
+                if self._archive_copy_matches(copy_url, original):
+                    return copy_url
+            later_pages = []
+            for link in msg_parser.archive_page_links(response.text):
+                parts = urlsplit(urljoin(url, link))
+                match = re.fullmatch(re.escape(self.parent_path) + r"/messages/archive/([1-9][0-9]*)", parts.path)
+                if (parts.scheme, parts.netloc) != origin or match is None or parts.fragment:
+                    raise ParseError("Archive pagination link belongs to an unexpected origin or child")
+                number = int(match[1])
+                if number > page:
+                    later_pages.append(number)
+            if not later_pages:
+                break
+            page = min(later_pages)
+        raise ParseError("No matching readable archive copy found; inbox message was not deleted")
+
+    def _archive_copy_matches(self, url: str, original: MessageDetail) -> bool:
+        response = self._http.get(url, use_cache=False)
+        if response.status_code != 200:
+            raise ParseError(f"Archive copy lookup returned HTTP {response.status_code}")
+        return msg_parser.archive_message_matches(response.text, original)
 
     def delete_message(self, message_id: str | int) -> None:
         """Delete exactly one received message from this account's inbox.
@@ -293,6 +374,11 @@ class Child:
         data = self._inbox_message_data(provider, message_id)
         if data is None:
             raise ValueError("Message is not present in this child's inbox")
+        self._require_message_delete_action(data)
+        self._delete_inbox_message(provider, message_id)
+
+    @staticmethod
+    def _require_message_delete_action(data: dict) -> None:
         actions = data.get("ActionButtons")
         if not isinstance(actions, list) or not any(
             isinstance(action, dict)
@@ -300,6 +386,8 @@ class Child:
             for action in actions
         ):
             raise NotAuthorizedError("Message does not expose a single-message delete action")
+
+    def _delete_inbox_message(self, provider: dict[str, str], message_id: int) -> None:
         url = self._message_endpoint(provider, "BatchDeleteConversationUrl")
         # Matches jQuery's serialization of {MessageIds: [id]}. Never send ThreadIds.
         result = self._message_post(url, {"MessageIds[]": [message_id]})

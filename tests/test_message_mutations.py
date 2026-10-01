@@ -60,6 +60,12 @@ def _posts(http):
     return [call for call in http.session.request.call_args_list if call.args[0] == "POST"]
 
 
+def _call(child, method, message_id):
+    if method == "archive_message":
+        return child.archive_message(message_id, mode="copy")
+    return getattr(child, method)(message_id)
+
+
 def test_fresh_inbox_lookup_needs_no_thread_and_preserves_read_status():
     child, http = _setup(_page(), _response(MESSAGE))
 
@@ -79,7 +85,7 @@ def test_archive_copies_only_one_message_and_returns_verified_flags():
     archived = {**MESSAGE, "IsCopiedToArchive": True}
     child, http = _setup(_page(), _response(MESSAGE), _response(""), _response(archived))
 
-    message = child.archive_message(123)
+    message = child.archive_message(123, mode="copy")
 
     assert message.is_archived is True
     assert message.is_outbox is False
@@ -93,7 +99,7 @@ def test_archive_copies_only_one_message_and_returns_verified_flags():
 
 def test_already_archived_is_a_fresh_noop():
     child, http = _setup(_page(), _response({**MESSAGE, "IsCopiedToArchive": True}))
-    assert child.archive_message(123).is_archived is True
+    assert child.archive_message(123, mode="copy").is_archived is True
     assert _posts(http) == []
 
 
@@ -149,7 +155,7 @@ def test_non_integer_acknowledgement_still_requires_fresh_verification(reply):
 def test_invalid_ids_never_make_a_request(method, value):
     child, http = _setup()
     with pytest.raises(ValueError, match="Message ID"):
-        getattr(child, method)(value)
+        _call(child, method, value)
     http.session.request.assert_not_called()
 
 
@@ -162,7 +168,7 @@ def test_explicit_null_means_not_found():
 def test_missing_message_cannot_be_mutated(method):
     child, http = _setup(_page(), _response(None))
     with pytest.raises(ValueError, match="not present"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert _posts(http) == []
 
 
@@ -183,7 +189,7 @@ def test_bad_lookup_cannot_be_treated_as_a_message_or_absence(bad):
 def test_sent_messages_are_out_of_scope(method):
     child, http = _setup(_page(), _response({**MESSAGE, "IsOutbox": True}))
     with pytest.raises(NotAuthorizedError, match="received inbox"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert _posts(http) == []
 
 
@@ -212,7 +218,7 @@ def test_endpoint_discovery_rejects_missing_or_unexpected_routes(method, key, ba
     provider = {**PROVIDER, key: bad}
     child, http = _setup(_page(provider), _response(MESSAGE))
     with pytest.raises(ParseError, match="endpoint"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert _posts(http) == []
     assert all(call.args[1] in (
         BASE + "conversations",
@@ -239,7 +245,7 @@ def test_missing_inbox_or_session_never_posts(page):
 def test_failed_preflight_never_posts(method, status):
     child, http = _setup(_page(), _response("", status))
     with pytest.raises(ParseError, match=f"HTTP {status}"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert _posts(http) == []
 
 
@@ -248,7 +254,7 @@ def test_failed_preflight_never_posts(method, status):
 def test_failed_post_is_not_followed_or_retried(method, response):
     child, http = _setup(_page(), _response(MESSAGE), response)
     with pytest.raises(ParseError, match="before retrying"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert len(_posts(http)) == 1
     assert http.session.request.call_count == 3
 
@@ -257,7 +263,7 @@ def test_failed_post_is_not_followed_or_retried(method, response):
 def test_network_failure_after_post_is_uncertain_and_never_retried(method):
     child, http = _setup(_page(), _response(MESSAGE), requests.Timeout("lost reply"))
     with pytest.raises(NetworkError, match="may have succeeded"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert len(_posts(http)) == 1
     assert http.session.request.call_count == 3
 
@@ -270,7 +276,7 @@ def test_network_failure_after_post_is_uncertain_and_never_retried(method):
 def test_failed_verification_reports_uncertainty_without_repeating_post(method, response):
     child, http = _setup(_page(), _response(MESSAGE), _response("", 204), response)
     with pytest.raises(ParseError, match="may have succeeded, but verification failed"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert len(_posts(http)) == 1
 
 
@@ -278,14 +284,14 @@ def test_failed_verification_reports_uncertainty_without_repeating_post(method, 
 def test_http_success_without_effect_is_not_success(method):
     child, http = _setup(_page(), _response(MESSAGE), _response(True), _response(MESSAGE))
     with pytest.raises(ParseError, match="before retrying"):
-        getattr(child, method)(123)
+        _call(child, method, 123)
     assert len(_posts(http)) == 1
 
 
 def test_archive_must_leave_message_visible():
     child, _ = _setup(_page(), _response(MESSAGE), _response(True), _response(None))
     with pytest.raises(ParseError, match="archive copy could not be verified"):
-        child.archive_message(123)
+        child.archive_message(123, mode="copy")
 
 
 def test_mutation_and_lookup_bypass_stale_disk_cache(tmp_path):
@@ -312,3 +318,211 @@ def test_message_detail_flags_keep_legacy_constructor_and_missing_values():
     parsed = parse_message_detail_json(json.dumps([MESSAGE]))[0]
     assert parsed.is_archived is False
     assert parsed.is_outbox is False
+
+
+ARCHIVED = {**MESSAGE, "IsCopiedToArchive": True}
+COPY_URL = BASE + "archive/message/77"
+
+
+def _archive_list(*, link=COPY_URL, subject=MESSAGE["Subject"], sender=MESSAGE["SenderName"]):
+    return _response(
+        '<div class="sk-messages-list" data-clientlogic-settings-messages="{}">'
+        f'<li class="sk-message-list-item"><a href="{escape(link, quote=True)}">'
+        f'<div class="sk-message-title">{escape(subject)}</div>'
+        f'<li class="sk-message-senderrecipient-name">{escape(sender)}</li>'
+        '</a></li></div>'
+    )
+
+
+def _archive_detail(*, body=MESSAGE["BaseText"], date=MESSAGE["SentReceivedDateText"], attachment=""):
+    return _response(
+        f'<div class="sk-message-subject-text">{escape(MESSAGE["Subject"])}</div>'
+        f'<div class="sk-message-senderrecipient-name"><span>{escape(MESSAGE["SenderName"])}</span></div>'
+        f'<div class="sk-message-send-date"><span>{escape(date)}</span></div>'
+        f'<div class="sk-message-text">{body}</div>{attachment}'
+    )
+
+
+def test_archive_defaults_to_move_after_verifying_content_then_checks_copy_again():
+    child, http = _setup(
+        _page(), _response(MESSAGE), _response(""), _response(ARCHIVED),
+        _archive_list(link=COPY_URL + "?pageIndex=1"), _archive_detail(),
+        _response(ARCHIVED), _response(1), _archive_detail(),
+    )
+
+    result = child.archive_message(123)
+
+    assert result.id == "123" and result.is_archived is True
+    posts = _posts(http)
+    assert [p.args[1] for p in posts] == [
+        PROVIDER["CopyConversationMessageToArchiveUrl"], PROVIDER["BatchDeleteConversationUrl"],
+    ]
+    assert posts[0].kwargs["data"] == {"messageId": 123, "isOutbox": "false"}
+    assert posts[1].kwargs["data"] == {"MessageIds[]": [123]}
+    calls = http.session.request.call_args_list
+    assert calls[5].args == ("GET", COPY_URL)
+    assert calls[-1].args == ("GET", COPY_URL)
+    assert all(c.kwargs["allow_redirects"] is False for c in calls)
+
+
+def test_move_reuses_existing_copy_without_creating_duplicate():
+    child, http = _setup(
+        _page(), _response(ARCHIVED), _archive_list(), _archive_detail(),
+        _response(ARCHIVED), _response(1), _archive_detail(),
+    )
+    assert child.archive_message(123, mode="move").is_archived is True
+    assert len(_posts(http)) == 1
+    assert _posts(http)[0].args[1] == PROVIDER["BatchDeleteConversationUrl"]
+
+
+def test_move_searches_later_archive_pages_and_keeps_original_search_filter():
+    first_page = _archive_list().text + f'<a href="{BASE}archive/2?searchRequest=other">Next</a>'
+    child, http = _setup(
+        _page(), _response(ARCHIVED), _response(first_page), _archive_detail(body="Other content"),
+        _archive_list(), _archive_detail(), _response(ARCHIVED), _response(1), _archive_detail(),
+    )
+    child.archive_message(123)
+    assert http.session.request.call_args_list[4].args == (
+        "GET", BASE + "archive/2?searchRequest=Udflugt+sidste+sommer",
+    )
+
+
+def test_archive_pagination_never_leaves_the_child():
+    listing = _response(
+        '<div class="sk-messages-list" data-clientlogic-settings-messages="{}"></div>'
+        '<a href="https://other/parent/1/Child/messages/archive/2">Next</a>'
+    )
+    child, http = _setup(_page(), _response(ARCHIVED), listing)
+    with pytest.raises(ParseError, match="pagination link"):
+        child.archive_message(123)
+    assert _posts(http) == []
+    assert http.session.request.call_count == 3
+
+
+@pytest.mark.parametrize("mode", [None, False, "", "MOVE", "delete", [], 1])
+def test_archive_mode_is_validated_before_any_io(mode):
+    child, http = _setup()
+    with pytest.raises(ValueError, match="mode"):
+        child.archive_message(123, mode=mode)
+    http.session.request.assert_not_called()
+
+
+@pytest.mark.parametrize("value", [True, 0, -1, [], "thread-uuid"])
+def test_move_rejects_invalid_ids_before_io(value):
+    child, http = _setup()
+    with pytest.raises(ValueError, match="Message ID"):
+        child.archive_message(value)
+    http.session.request.assert_not_called()
+
+
+def test_move_checks_delete_permission_before_creating_a_copy():
+    child, http = _setup(_page(), _response({**MESSAGE, "ActionButtons": []}))
+    with pytest.raises(NotAuthorizedError):
+        child.archive_message(123)
+    assert _posts(http) == []
+
+
+def test_move_checks_delete_endpoint_before_creating_a_copy():
+    child, http = _setup(_page({**PROVIDER, "BatchDeleteConversationUrl": "https://other/delete"}), _response(MESSAGE))
+    with pytest.raises(ParseError, match="endpoint"):
+        child.archive_message(123)
+    assert _posts(http) == []
+
+
+@pytest.mark.parametrize("detail", [
+    _archive_detail(body="Different message"), _archive_detail(date="26. jun. 2026"),
+    _response("Login"), _response("", 500),
+])
+def test_archive_flag_alone_cannot_authorize_deletion(detail):
+    child, http = _setup(_page(), _response(ARCHIVED), _archive_list(), detail)
+    with pytest.raises(ParseError, match="move could not be confirmed"):
+        child.archive_message(123)
+    assert _posts(http) == []
+
+
+@pytest.mark.parametrize("listing", [
+    _response("Login"), _response("", 500),
+    _response('<div class="sk-messages-list" data-clientlogic-settings-messages="{}"></div>'),
+    _archive_list(subject="Other subject"), _archive_list(sender="Other sender"),
+])
+def test_missing_archive_copy_preserves_inbox_even_after_copy_post(listing):
+    child, http = _setup(_page(), _response(MESSAGE), _response(""), _response(ARCHIVED), listing)
+    with pytest.raises(ParseError, match="move could not be confirmed"):
+        child.archive_message(123)
+    assert len(_posts(http)) == 1
+    assert _posts(http)[0].args[1] == PROVIDER["CopyConversationMessageToArchiveUrl"]
+
+
+@pytest.mark.parametrize("link", [
+    "https://other/messages/archive/message/77",
+    "https://school/parent/2/Other/messages/archive/message/77",
+    BASE + "archive/message/delete/77", COPY_URL + "#fragment",
+])
+def test_archive_copy_link_must_stay_on_this_childs_read_route(link):
+    child, http = _setup(_page(), _response(ARCHIVED), _archive_list(link=link))
+    with pytest.raises(ParseError, match="unexpected origin"):
+        child.archive_message(123)
+    assert _posts(http) == []
+    assert http.session.request.call_count == 3
+
+
+@pytest.mark.parametrize("current", [None, MESSAGE, {**ARCHIVED, "BaseText": "Changed"}])
+def test_changed_inbox_message_is_not_deleted(current):
+    child, http = _setup(
+        _page(), _response(ARCHIVED), _archive_list(), _archive_detail(), _response(current),
+    )
+    with pytest.raises(ParseError, match="changed while preparing"):
+        child.archive_message(123)
+    assert _posts(http) == []
+
+
+def test_permission_can_be_revoked_after_copy_verification():
+    child, http = _setup(
+        _page(), _response(ARCHIVED), _archive_list(), _archive_detail(),
+        _response({**ARCHIVED, "ActionButtons": []}),
+    )
+    with pytest.raises(ParseError, match="delete action"):
+        child.archive_message(123)
+    assert _posts(http) == []
+
+
+@pytest.mark.parametrize("failure,exception", [
+    (_response("", 500), ParseError), (_response(0), ParseError),
+    (requests.Timeout("lost delete response"), NetworkError),
+])
+def test_move_delete_failure_is_reported_as_partial_or_uncertain_without_retry(failure, exception):
+    child, http = _setup(
+        _page(), _response(MESSAGE), _response(""), _response(ARCHIVED),
+        _archive_list(), _archive_detail(), _response(ARCHIVED), failure,
+    )
+    with pytest.raises(exception, match="move could not be confirmed"):
+        child.archive_message(123)
+    assert len(_posts(http)) == 2
+
+
+def test_move_checks_that_copy_survived_deletion():
+    child, http = _setup(
+        _page(), _response(ARCHIVED), _archive_list(), _archive_detail(),
+        _response(ARCHIVED), _response(1), _response("", 404),
+    )
+    with pytest.raises(ParseError, match="move could not be confirmed"):
+        child.archive_message(123)
+    assert len(_posts(http)) == 1
+
+
+def test_archive_preserves_date_but_may_lose_time_of_day():
+    from pyskoleintra.parsers.messages import archive_message_matches
+
+    original = parse_message_detail_json(json.dumps({
+        **ARCHIVED, "SentReceivedDateText": "Torsdag, 25. jun. 2026 12:26",
+    }))[0]
+    assert archive_message_matches(_archive_detail(date="Torsdag, 25. jun. 2026 00:00").text, original)
+    assert not archive_message_matches(_archive_detail(date="Fredag, 26. jun. 2026 00:00").text, original)
+
+
+def test_move_does_not_delete_when_attachments_cannot_be_verified():
+    message = {**ARCHIVED, "AttachmentsLinks": [{"Name": "Note.pdf", "Url": "/attachment/1"}]}
+    child, http = _setup(_page(), _response(message), _archive_list(), _archive_detail())
+    with pytest.raises(ParseError, match="No matching readable archive copy"):
+        child.archive_message(123)
+    assert _posts(http) == []
