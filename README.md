@@ -2,7 +2,7 @@
 
 Python client library for [Skoleintra](https://skoleintra.dk) — the Danish school intranet platform used by many private and free schools (friskoler).
 
-Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO/Tabulex dashboards, appointments, holiday attendance and visibility preferences, photos, student contacts, documents, and timetables. Reading-contract support includes listing books and individual readings, plus adding, editing, and deleting one reading at a time.
+Provides programmatic access to messages, homework, calendar, weekly plans, reading contracts, contact book, SFO/Tabulex dashboards, appointments, holiday attendance and visibility preferences, photos, student contacts, documents, and timetables. Message support includes archiving and deleting individual received messages. Reading-contract support includes listing books and individual readings, plus adding, editing, and deleting one reading at a time.
 
 ## Installation
 
@@ -191,6 +191,76 @@ child.set_messages_read_status(msg.id, read=False)
 ```
 
 Reading a conversation with `source="thread"` does not change its read status.
+
+#### Archive or delete one received message
+
+Use a numeric message ID from an inbox thread or message detail. The fresh
+single-message lookup needs no thread UUID and does not mark the message read:
+
+```python
+detail = child.inbox_message(reviewed_message_id)
+if detail is not None:
+    print(detail.subject, detail.sender, detail.date)
+    print(detail.is_archived)  # True if a copy has been saved in the archive
+```
+
+`inbox_message()` bypasses the development cache. It returns `None` only when
+the server explicitly returns JSON `null`; login pages, HTTP errors and
+unexpected responses raise `ParseError`. The inspected installation returns
+HTTP 500 for a deleted message, so a lookup error alone does not prove absence.
+
+Archive a message after selecting and reviewing its ID:
+
+```python
+archived = child.archive_message(reviewed_message_id)
+assert archived.is_archived is True
+```
+
+SkoleIntra's current inbox UI **copies** the message to the archive and keeps
+the original in the inbox. `archive_message()` follows that operation and
+returns the freshly verified `MessageDetail`. If the fresh lookup already
+reports an archive copy, it returns without posting again.
+
+The returned detail keeps the **original inbox message ID**. The archive copy
+has a separate ID in the archive UI; do not pass that ID to `inbox_message()`,
+`archive_message()` or `delete_message()`. The inspected archive list and detail
+offer deletion of an archive copy, but no unarchive or move-to-inbox action.
+With the copy operation above, the original is already in the inbox. Archive
+copy deletion has not been tested and is not exposed by the library.
+
+Deletion is a separate, explicit call:
+
+```python
+child.delete_message(reviewed_message_id)
+```
+
+This selects exactly one message in the signed-in account's inbox, even when
+it belongs to a longer conversation. It requires the message's current UI to
+offer the single-message delete action. The request contains one `MessageIds[]`
+value and no thread selection. Successful verification requires a fresh lookup
+to return `null` unless the server explicitly reports exactly one deleted
+message (the observed live response is JSON `1`). A numeric count other than
+one raises `ParseError`. The count avoids relying on the server's broken
+lookup of deleted IDs. No trash or restore operation was found in the inspected
+message UI; an archive copy is not a restore API.
+
+Both mutation methods accept one positive numeric ID (`int` or ASCII decimal
+`str`). They currently support received inbox messages only. They do not expose
+batch operations, sent-message deletion, archive deletion or a combined move
+operation. A lookup returning explicit `null` makes mutations raise `ValueError`;
+HTTP errors for missing messages still raise `ParseError`. Unsupported
+mailbox/delete access raises `NotAuthorizedError`.
+
+The methods read fresh data before at most one POST. Archiving checks the
+archive flag with a fresh lookup afterwards; deletion checks the returned
+count, or falls back to a fresh lookup if no count is provided. They do not
+automatically retry a POST, follow redirects or log in again during it. A
+network error or failed verification can mean the operation already succeeded:
+inspect the web inbox/archive and, when available, `inbox_message(id)` before
+retrying. Single-message lookup, deletion and archiving have been checked live:
+the deleted message disappeared from inbox search; archiving created one visible
+archive copy while preserving the original's content and read status. Repeating
+the archive call performed no second POST and created no duplicate copy.
 
 #### Search messages
 
@@ -777,6 +847,8 @@ from pyskoleintra import (
 | `recipients` | `list[str]` | List of recipient names |
 | `attachments` | `list[Attachment]` | Attached files |
 | `auto_delete_date` | `str` | When the message will be auto-deleted (if applicable) |
+| `is_archived` | `bool \| None` | Whether a copy is in the archive; `None` when the source does not expose the flag |
+| `is_outbox` | `bool \| None` | Whether this is a sent message; `None` when the source does not expose the flag |
 
 ### `Attachment`
 

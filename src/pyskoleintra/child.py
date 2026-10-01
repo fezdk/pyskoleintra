@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode, urljoin, urlsplit
 
-from .exceptions import NotAuthorizedError, ParseError
+from .exceptions import NetworkError, NotAuthorizedError, ParseError
 from .models import (
     Album,
     CalendarEvent,
@@ -238,6 +238,173 @@ class Child:
         )
         resp = self._http.get(url)
         return msg_parser.parse_inbox_page_json(resp.text)
+
+    def inbox_message(self, message_id: str | int) -> MessageDetail | None:
+        """Fetch one inbox message by numeric ID without changing its read status.
+
+        Always uses fresh server data, including ``is_archived``. Returns
+        ``None`` only when the server explicitly returns JSON null. Login
+        pages, HTTP errors, and malformed responses raise ``ParseError``.
+        Some installations return HTTP 500 for an already deleted message;
+        this is not treated as proof of absence.
+        """
+        message_id = self._message_id(message_id)
+        provider = self._message_provider()
+        data = self._inbox_message_data(provider, message_id)
+        return msg_parser.parse_message_detail_json(json.dumps(data))[0] if data else None
+
+    def archive_message(self, message_id: str | int) -> MessageDetail:
+        """Copy exactly one received message to the archive, keeping it in the inbox.
+
+        Checks fresh data before and after one POST, and returns the message
+        with ``is_archived=True``. An already archived message is a no-op.
+        POSTs are never retried; inspect ``inbox_message()`` after an uncertain
+        result. Sent messages and bulk/thread operations are not supported.
+        """
+        message_id = self._message_id(message_id)
+        provider = self._message_provider()
+        data = self._inbox_message_data(provider, message_id)
+        if data is None:
+            raise ValueError("Message is not present in this child's inbox")
+        if data["IsCopiedToArchive"]:
+            return msg_parser.parse_message_detail_json(json.dumps(data))[0]
+        url = self._message_endpoint(provider, "CopyConversationMessageToArchiveUrl")
+        self._message_post(url, {"messageId": message_id, "isOutbox": "false"})
+        after = self._verify_message_lookup(provider, message_id)
+        if after is None or after["IsCopiedToArchive"] is not True:
+            raise ParseError(
+                "Message archive copy could not be verified; "
+                "inspect inbox_message() and the archive before retrying"
+            )
+        return msg_parser.parse_message_detail_json(json.dumps(after))[0]
+
+    def delete_message(self, message_id: str | int) -> None:
+        """Delete exactly one received message from this account's inbox.
+
+        Verifies the fresh message and its delete action, then submits only
+        one numeric message ID, never a conversation/thread selection. The
+        server must confirm exactly one deletion. If it does not return a
+        numeric count, a fresh lookup must explicitly return null instead.
+        No trash or restore operation is known; archive separately before
+        deleting if a copy is wanted. No POST is retried automatically.
+        """
+        message_id = self._message_id(message_id)
+        provider = self._message_provider()
+        data = self._inbox_message_data(provider, message_id)
+        if data is None:
+            raise ValueError("Message is not present in this child's inbox")
+        actions = data.get("ActionButtons")
+        if not isinstance(actions, list) or not any(
+            isinstance(action, dict)
+            and action.get("EventName") == "messageConversationsDeleteSingleMessage"
+            for action in actions
+        ):
+            raise NotAuthorizedError("Message does not expose a single-message delete action")
+        url = self._message_endpoint(provider, "BatchDeleteConversationUrl")
+        # Matches jQuery's serialization of {MessageIds: [id]}. Never send ThreadIds.
+        result = self._message_post(url, {"MessageIds[]": [message_id]})
+        try:
+            deleted_count = json.loads(result)
+        except (json.JSONDecodeError, TypeError):
+            deleted_count = None
+        # The web UI uses this endpoint's numeric response as the number of
+        # deleted messages. A subsequent direct lookup can return HTTP 500 for
+        # a deleted ID, so use the explicit count rather than that error.
+        if type(deleted_count) is int:
+            if deleted_count != 1:
+                raise ParseError(
+                    f"Expected one deleted message, server reported {deleted_count}; "
+                    "inspect the inbox before retrying"
+                )
+            return
+        if self._verify_message_lookup(provider, message_id) is not None:
+            raise ParseError(
+                "Message is still returned after deletion; "
+                "inspect inbox_message() before retrying"
+            )
+
+    @staticmethod
+    def _message_id(value: str | int) -> int:
+        if isinstance(value, str):
+            value = value.strip()
+            if not value.isascii() or not value.isdecimal():
+                raise ValueError("Message ID must be one positive numeric ID")
+            value = int(value)
+        if type(value) is not int or value <= 0:
+            raise ValueError("Message ID must be one positive numeric ID")
+        return value
+
+    def _message_provider(self) -> dict[str, str]:
+        response = self._http.get(self._url("messages/conversations"), use_cache=False)
+        if response.status_code != 200:
+            raise ParseError(f"Message inbox returned HTTP {response.status_code}")
+        return msg_parser.extract_data_provider_settings(response.text)
+
+    def _message_endpoint(self, provider: dict[str, str], key: str) -> str:
+        paths = {
+            "GetMessageForThreadlessConversationUrl":
+                "messages/conversations/getmessageforthreadlessconversation",
+            "CopyConversationMessageToArchiveUrl": "messages/archiveMessage",
+            "BatchDeleteConversationUrl": "messages/batchDeleteMessages",
+        }
+        if key not in provider:
+            raise ParseError(f"Message endpoint {key} is unavailable")
+        url = urljoin(self._url("messages/conversations"), provider[key])
+        # Match the observed route exactly, including origin and child, with
+        # no query/fragment that could introduce another message selection.
+        if urlsplit(url) != urlsplit(self._url(paths[key])):
+            raise ParseError(f"Message endpoint {key} has an unexpected origin, child, or route")
+        return url
+
+    def _inbox_message_data(self, provider: dict[str, str], message_id: int) -> dict | None:
+        url = self._message_endpoint(provider, "GetMessageForThreadlessConversationUrl")
+        response = self._http.get(url + "?" + urlencode({"messageId": message_id}), use_cache=False)
+        if response.status_code != 200:
+            raise ParseError(f"Message lookup returned HTTP {response.status_code}")
+        try:
+            data = json.loads(response.text)
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise ParseError("Invalid single-message JSON response") from exc
+        if data is None:
+            return None
+        if (
+            not isinstance(data, dict)
+            or type(data.get("Id")) is not int
+            or data["Id"] != message_id
+            or type(data.get("IsOutbox")) is not bool
+            or type(data.get("IsCopiedToArchive")) is not bool
+        ):
+            raise ParseError("Single-message response has invalid identity or archive/mailbox flags")
+        if data["IsOutbox"]:
+            raise NotAuthorizedError("This operation supports received inbox messages only")
+        return data
+
+    def _message_post(self, url: str, data: dict) -> str:
+        # No redirects, relogin callback, or retries for either mutation.
+        try:
+            response = self._http.post(url, data=data)
+        except NetworkError as exc:
+            raise NetworkError(
+                "Message mutation may have succeeded; inspect inbox_message() "
+                "and the archive before retrying"
+            ) from exc
+        if response.status_code not in (200, 204):
+            raise ParseError(
+                f"Message mutation returned HTTP {response.status_code}; "
+                "inspect inbox_message() and the archive before retrying"
+            )
+        if response.text.strip() == "false":
+            raise ParseError("Message mutation was rejected; inspect fresh data before retrying")
+        return response.text
+
+    def _verify_message_lookup(self, provider: dict[str, str], message_id: int) -> dict | None:
+        try:
+            return self._inbox_message_data(provider, message_id)
+        except Exception as exc:
+            raise ParseError(
+                "Message mutation may have succeeded, but verification failed; "
+                "inspect inbox_message() and the archive before retrying"
+            ) from exc
 
     # -----------------------------------------------------------------------
     # Homework / diaries

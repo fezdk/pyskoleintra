@@ -5,8 +5,21 @@ from __future__ import annotations
 import json
 import re
 
+from ..exceptions import ParseError
 from ..models import Attachment, MessageDetail, MessageSummary, MessageThread
 from .common import extract_json_attr, extract_text, make_soup
+
+
+def extract_data_provider_settings(html: str) -> dict[str, str]:
+    """Read the inbox's AJAX endpoints; a missing inbox must not look empty."""
+    attr = "data-clientlogic-settings-messageconversationswitharchivefunctionality"
+    data = extract_json_attr(make_soup(html), f"div[{attr}]", attr)
+    if not isinstance(data, dict) or not isinstance(data.get("DataProviderSettings"), dict):
+        raise ParseError("Message inbox settings are unavailable")
+    return {
+        key: value for key, value in data["DataProviderSettings"].items()
+        if isinstance(value, str) and value
+    }
 
 
 def parse_inbox_conversations(html: str) -> list[MessageThread]:
@@ -192,6 +205,8 @@ def parse_message_detail_json(json_text: str) -> list[MessageDetail]:
             recipients=msg.get("Recipients", []),
             attachments=attachments,
             auto_delete_date=msg.get("AutoDeletionDateText", ""),
+            is_archived=msg.get("IsCopiedToArchive"),
+            is_outbox=msg.get("IsOutbox"),
         ))
 
     return details

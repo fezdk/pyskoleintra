@@ -66,6 +66,8 @@ class MessageDetail:
     recipients: list[str] = field(default_factory=list)
     attachments: list[Attachment] = field(default_factory=list)
     auto_delete_date: str = ""
+    is_archived: bool | None = None
+    is_outbox: bool | None = None
 
 
 @dataclass
