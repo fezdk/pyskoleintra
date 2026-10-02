@@ -194,9 +194,13 @@ class Child:
                 ("readFlag", str(bool(read)).lower()),
             ]
         )
-        response = self._http.post(
-            f"{self._url('messages/changemessagestatus')}?{query}"
-        )
+        try:
+            response = self._http.post(
+                f"{self._url('messages/changemessagestatus')}?{query}"
+            )
+        finally:
+            # Also invalidate on a lost response: the POST may have succeeded.
+            self._http.invalidate_get_cache_prefix(self._url("messages/"))
         if not 200 <= response.status_code < 300:
             raise ParseError(
                 f"Changing message read status returned HTTP {response.status_code}"

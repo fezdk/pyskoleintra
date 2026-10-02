@@ -264,6 +264,20 @@ child.set_messages_read_status(msg.id, read=False)
 
 Reading a conversation with `source="thread"` does not change its read status.
 
+`inbox_message(id).is_unread` exposes the exact message's boolean
+`ShowUnreadIndication` flag. Missing/non-boolean fields produce `None`, never a
+guess from conversation status or absence from a partial unread list. Both true
+and false were verified against existing known-state messages with GET-only
+reads and unchanged before/after lists; no live status mutation was needed.
+
+Explicit `mark_messages_read` / `mark_messages_unread` calls invalidate the
+optional disk cache for this child's message paths on this origin, including
+date sidecars and paginated lists. Generation markers persist across sessions
+and reject GET responses begun before invalidation. Other children, origins and
+calendar data remain cached. Invalidation also happens on an uncertain POST
+outcome; the library does not retry the write. Existing cache files are retained
+but ignored until refreshed, not globally deleted.
+
 #### Browse the archive
 
 ```python

@@ -21,6 +21,9 @@ class _Http:
         self.posts.append((url, data))
         return _Response(self.status_code)
 
+    def invalidate_get_cache_prefix(self, prefix):
+        assert prefix == "https://school/parent/1/Child/messages/"
+
 
 def _child(http: _Http) -> Child:
     return Child(

@@ -306,6 +306,8 @@ def parse_message_detail_json(
             auto_delete_date=msg.get("AutoDeletionDateText", ""),
             is_archived=msg.get("IsCopiedToArchive"),
             is_outbox=msg.get("IsOutbox"),
+            # Exact per-message UI flag, not the whole conversation's IsUnread.
+            is_unread=msg.get("ShowUnreadIndication") if type(msg.get("ShowUnreadIndication")) is bool else None,
             **date_fields(
                 msg.get("SentReceivedDateText", ""),
                 source_timezone=source_timezone, fetched_at=fetched_at,

@@ -6,6 +6,9 @@ import hashlib
 import json
 import logging
 import os
+import uuid
+from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Callable
@@ -100,6 +103,43 @@ class HttpSession:
     def _cache_path(self, key: str) -> str:
         return os.path.join(self._cache_dir, key + ".html")  # type: ignore[arg-type]
 
+    def _cache_generations(self, url: str) -> dict[str, str]:
+        """Persist invalidation by exact origin/path prefix, including old caches."""
+        if not self._cache_dir:
+            return {}
+        parsed = urlsplit(url)
+        generations = {}
+        parts = parsed.path.split("/")
+        for index in range(1, len(parts)):
+            prefix = urlunsplit((parsed.scheme, parsed.netloc, "/".join(parts[:index])+"/", "", ""))
+            key = hashlib.sha256(prefix.encode()).hexdigest()
+            marker = Path(self._cache_dir) / ("generation-"+key)
+            try:
+                generations[key] = marker.read_text(encoding="ascii")
+            except FileNotFoundError:
+                pass
+        return generations
+
+    def invalidate_get_cache_prefix(self, prefix: str) -> None:
+        """Invalidate bodies AND date sidecars without deleting other scopes.
+
+        Generation markers survive restarts. A GET started before invalidation
+        cannot repopulate the cache with a stale response after the mutation.
+        """
+        parsed = urlsplit(prefix)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.query or parsed.fragment or not parsed.path.endswith("/"):
+            raise ValueError("Expected an absolute URL path prefix ending in /")
+        if not self._cache_dir:
+            return
+        key = hashlib.sha256(prefix.encode()).hexdigest()
+        marker = Path(self._cache_dir) / ("generation-"+key)
+        temp = marker.with_name(marker.name+"."+uuid.uuid4().hex+".tmp")
+        try:
+            temp.write_text(uuid.uuid4().hex, encoding="ascii")
+            os.replace(temp, marker)
+        finally:
+            temp.unlink(missing_ok=True)
+
     # URLs matching these substrings are never cached (auth/SSO flow)
     _CACHE_EXCLUDE = ("Account/", "/sso/", "IdpLogin", "login", "saml", "adfs")
 
@@ -122,19 +162,28 @@ class HttpSession:
         resp._content = text.encode("utf-8")  # noqa: SLF001
         resp.encoding = "utf-8"
         resp.url = url
+        generations = self._cache_generations(url)
+        generation_verified = False
         try:
             with open(path + ".json", encoding="utf-8") as f:
                 metadata = json.load(f)
+            if metadata.get("generations", {}) != generations:
+                return None
+            generation_verified = True
+            if generations and metadata.get("sha256") != hashlib.sha256(resp.content).hexdigest():
+                return None
             if metadata["sha256"] == hashlib.sha256(resp.content).hexdigest():
                 fetched_at = datetime.fromisoformat(metadata["fetched_at"])
                 if fetched_at.utcoffset() is not None:
                     resp._pyskoleintra_fetched_at = fetched_at
         except (OSError, ValueError, TypeError, KeyError):
+            if generations and not generation_verified:
+                return None
             # Legacy, corrupt or mismatched metadata has unknown context.
             pass
         return resp
 
-    def _cache_write(self, method: str, url: str, resp: requests.Response) -> None:
+    def _cache_write(self, method: str, url: str, resp: requests.Response, *, generations=None) -> None:
         """Save a response body to the cache directory."""
         if not self._cache_dir or resp.status_code != 200 or not self._should_cache(url):
             return
@@ -150,6 +199,7 @@ class HttpSession:
             json.dump({
                 "sha256": hashlib.sha256(resp.text.encode("utf-8")).hexdigest(),
                 "fetched_at": fetched_at.isoformat() if fetched_at else None,
+                "generations": self._cache_generations(url) if generations is None else generations,
             }, f)
 
     def _request(
@@ -169,6 +219,7 @@ class HttpSession:
                 return cached
 
         logger.debug("%s %s", method, url)
+        generations = self._cache_generations(url) if use_cache and method == "GET" else {}
         try:
             resp = self.session.request(
                 method, url, data=data, allow_redirects=allow_redirects, timeout=30
@@ -198,7 +249,7 @@ class HttpSession:
 
         # Cache successful GET responses
         if use_cache and method == "GET" and data is None:
-            self._cache_write(method, url, resp)
+            self._cache_write(method, url, resp, generations=generations)
 
         return resp
 

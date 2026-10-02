@@ -81,6 +81,7 @@ class MessageDetail:
     timestamp: datetime | None = None
     calendar_date: date | None = None
     date_precision: DatePrecision | None = None
+    is_unread: bool | None = None
 
 
 @dataclass
