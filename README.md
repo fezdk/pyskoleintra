@@ -10,7 +10,8 @@ Provides programmatic access to messages, homework, calendar, weekly plans, read
 pip install -e .
 ```
 
-Requires Python 3.10+. Dependencies: `requests`, `beautifulsoup4`, `lxml`.
+Requires Python 3.10+. Dependencies: `requests`, `beautifulsoup4`, `lxml`,
+`python-dotenv`, and `tzdata` (IANA timezone data, including on Windows).
 
 ## Setup
 
@@ -48,6 +49,45 @@ for child in children:
         print(f"  {hw.date:%Y-%m-%d} {hw.subject}: {hw.description}")
 ```
 
+## Dates and timezone
+
+The timezone is configured once on the client and inherited by all children
+and their Tabulex clients. The default is `Europe/Copenhagen`, regardless of
+the machine's local timezone:
+
+```python
+client = Skoleintra("myschool")  # Europe/Copenhagen, with DST
+client = Skoleintra("myschool", source_timezone="Europe/Copenhagen")
+client = Skoleintra("myschool", source_timezone="UTC")  # optional override
+print(client.source_timezone.key)
+```
+
+`source_timezone` accepts an IANA timezone name or a `zoneinfo.ZoneInfo` object.
+It defines how local wall times are interpreted and which zone is used when
+returning instants. An explicit source offset or Unix timestamp always retains
+its actual instant. Invalid timezone names fail when creating the instance.
+There are no per-method timezone options.
+
+- Calendar event `start`/`end` are timezone-aware. Calendar and schedule query
+  ranges interpret naive `datetime` arguments in the instance timezone; aware
+  arguments retain their instant. Ambiguous/nonexistent naive times around a
+  DST change raise `ValueError`; supply an aware datetime to disambiguate.
+- Schedule lessons are grouped and formatted in that timezone. Default dates
+  such as today and the start of the current week also use it.
+- `HomeworkEntry.date` and `ScheduleDay.date` retain their legacy `datetime`
+  type at local midnight, now timezone-aware. They represent calendar days,
+  not evidence of an event occurring at midnight.
+- Date-only values (including reading contracts and Tabulex appointments),
+  standalone Tabulex wall-clock `time` values, week numbers, and original date
+  strings retain their values and types. A date alone cannot be shifted to
+  another timezone. Tabulex's yearless agenda uses the original response date
+  in the instance timezone as its reference.
+
+**Migration in 0.3.0:** calendar, schedule and homework datetimes no longer
+depend on the host timezone and are now aware. Update naive-datetime comparisons
+and serializers accordingly. Existing message `.date` strings remain unchanged;
+use the new normalized fields below when a machine-readable value is needed.
+
 ## Authentication & session persistence
 
 ```python
@@ -78,6 +118,14 @@ client = Skoleintra("myschool", cookie_file="cookies.txt", cache_dir="tmp/cache"
 
 This saves every GET response as an HTML file. Subsequent runs serve from cache. Auth/SSO URLs are automatically excluded from caching.
 
+A small `.html.json` sidecar records the original response time and body hash.
+Relative dates use that original time (the HTTP `Date` header when valid,
+otherwise the actual network-fetch time), never the cache file's mtime or the
+date of a later poll. Legacy caches without valid matching metadata still load,
+but relative message dates remain unknown and yearless Tabulex agenda entries
+are omitted. Refetch those pages to obtain dated responses. Full dates remain
+usable without metadata.
+
 ---
 
 ## Endpoints & data models
@@ -103,6 +151,30 @@ oliver = client.child("Oliver")
 ---
 
 ### Messages
+
+#### Normalized dates
+
+`MessageThread`, `MessageSummary`, `MessageDetail`, `ArchivedMessageSummary`,
+and `ArchivedMessageDetail` expose these additional fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `date` | `str` | Original display text, unchanged |
+| `timestamp` | `datetime \| None` | A known, timezone-aware instant |
+| `calendar_date` | `date \| None` | A full known calendar date |
+| `date_precision` | `DatePrecision \| None` | `"day"`, `"minute"`, `"second"`, or `"microsecond"`; `None` if unknown |
+
+For example, `"Mandag, 22. jun. 2026 12:26"` becomes a timestamp of
+`2026-06-22T12:26:00+02:00` under the default timezone, with minute precision.
+Full Danish dates and ISO dates are supported. Valid ISO machine values, where
+available (`SentReceivedDate` or HTML `time[datetime]`), take precedence over
+display text; unspecified numeric/epoch formats are not guessed.
+
+`"I dag"`/`"I går"` require an original response time. Yearless strings such
+as `"22. jun."`, clock-only strings such as `"07:16"`, and invalid dates stay
+unknown. Date-only sources never become midnight timestamps. Ambiguous or
+nonexistent local message times retain only their known calendar day. There
+are no extra detail requests to fill in missing dates during list polling.
 
 #### Inbox threads
 
@@ -191,6 +263,49 @@ child.set_messages_read_status(msg.id, read=False)
 ```
 
 Reading a conversation with `source="thread"` does not change its read status.
+
+#### Browse the archive
+
+```python
+page = child.archived_messages(page=1, query="sommer", refresh=True)
+for entry in page.messages:
+    print(entry.archive_id, entry.subject, entry.date)
+
+# Explicit pagination, using the same search query:
+if page.next_page is not None:
+    next_page = child.archived_messages(page=page.next_page, query="sommer")
+
+# Fetch content only when needed:
+if page.messages:
+    detail = child.archived_message(page.messages[0].archive_id, refresh=True)
+    print(detail.content, detail.calendar_date)
+```
+
+`archived_messages(*, page=1, query="", refresh=False)` returns an
+`ArchivedMessagePage` with `messages`, `page`, and `next_page`. Each call reads
+one server page; it does not fetch every page or each message's detail.
+`archived_message(archive_id, *, refresh=False)` returns one
+`ArchivedMessageDetail`. Both use only GET and support `refresh=True` to bypass
+both cache reads and writes. HTTP failures (including 404/500), login pages, or
+missing required markup raise `ParseError`; they are not treated as empty data.
+
+Archive IDs belong to a **separate namespace** from inbox IDs. Archive models
+expose `archive_id: int` and deliberately have no `.id`. Do not pass archive IDs
+to `archive_message`, `delete_message`, or read-status actions. No archive
+delete, restore, or unarchive operation is exposed by these read APIs.
+
+Archive dates have **at most day precision**: the inspected archive detail
+renders a synthetic `00:00` where the inbox had a real time. A yearless list
+date remains unknown; a full date in detail becomes `calendar_date`, with
+`timestamp=None` and `date_precision="day"`.
+
+These methods send no read-status action. A live check of two already-read
+archive copies used eight GET requests after authentication; archive contents,
+visible inbox status, and the unread list were unchanged afterwards. **Whether
+opening an unread archive copy implicitly marks it read on the server is not
+verified.** Do not present this API as a guarantee that unread archive status is
+preserved. Multi-page traversal is covered by synthetic tests; the live archive
+used for verification fit on one page.
 
 #### Archive or delete one received message
 
@@ -296,7 +411,9 @@ for t in results:
     print(f"[{t.date}] {t.subject}")
 ```
 
-**Models:** `MessageThread`, `MessageSummary`, `MessageDetail`, `Attachment`
+**Models:** `MessageThread`, `MessageSummary`, `MessageDetail`, `Attachment`,
+`ArchivedMessageSummary`, `ArchivedMessageDetail`, `ArchivedMessagePage`.
+`DatePrecision` is also exported.
 
 ---
 
@@ -800,6 +917,12 @@ SkoleIntra. Reading-contract tests cover request payloads, entry IDs, minutes an
 pages, amount validation, stale entries, read-only contracts, cache bypass,
 uncertain writes, and preservation of other existing readings.
 
+Message tests cover normalized dates, DST gaps/folds, original cache context,
+archive pagination and ID isolation, error handling, and GET-only archive reads.
+Timezone tests cover inheritance, host independence, calendar/schedule output,
+query ranges across DST, and Tabulex's reference date. Pytest discovery is
+restricted to `tests/` so private manual live scripts are never collected.
+
 `test_live.py` is a separate manual script that logs in using `.env`; it is not
 part of the offline suite. It does not automatically run reading mutations.
 Manual live validation of the new reading methods covered adding to an existing
@@ -874,6 +997,17 @@ from pyskoleintra import (
 | `auto_delete_date` | `str` | When the message will be auto-deleted (if applicable) |
 | `is_archived` | `bool \| None` | Whether a copy is in the archive; `None` when the source does not expose the flag |
 | `is_outbox` | `bool \| None` | Whether this is a sent message; `None` when the source does not expose the flag |
+
+The three message models above also include `timestamp`, `calendar_date`, and
+`date_precision` as described in [Normalized dates](#normalized-dates).
+
+### `ArchivedMessageSummary`, `ArchivedMessageDetail`, `ArchivedMessagePage`
+
+| Model | Fields |
+|---|---|
+| `ArchivedMessageSummary` | `archive_id: int`, `subject: str`, `sender: str`, `date: str`, and the three normalized date fields |
+| `ArchivedMessageDetail` | All summary fields, plus `content: str`, `recipients: list[str]`, `attachments: list[Attachment]` |
+| `ArchivedMessagePage` | `messages: list[ArchivedMessageSummary]`, `page: int`, `next_page: int \| None` |
 
 ### `Attachment`
 

@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 import re
 import time
+from zoneinfo import ZoneInfo
 
 from .auth import authenticate
 from .child import Child
+from .dates import DEFAULT_TIMEZONE, resolve_timezone
 from .exceptions import NotAuthorizedError, SessionExpiredError
 from .http import HttpSession
 from .models import ChildInfo
@@ -33,7 +35,10 @@ class Skoleintra:
                 print(f"  {entry.date}: {entry.subject} — {entry.description}")
     """
 
-    def __init__(self, school: str, *, cookie_file: str | None = None, cache_dir: str | None = None):
+    def __init__(
+        self, school: str, *, cookie_file: str | None = None,
+        cache_dir: str | None = None, source_timezone: str | ZoneInfo = DEFAULT_TIMEZONE,
+    ):
         """
         Args:
             school: The school subdomain (e.g. ``"myschool"`` for
@@ -43,14 +48,22 @@ class Skoleintra:
             cache_dir: Optional directory to cache HTTP responses on disk.
                 When set, GET responses are saved and served from cache on
                 subsequent runs — useful for developing parsers offline.
+            source_timezone: IANA timezone for all date/time interpretation,
+                defaulting to ``Europe/Copenhagen``. Inherited by every child.
         """
         self._school = school
+        self._source_timezone = resolve_timezone(source_timezone)
         self._base_url = f"https://{school}.m.skoleintra.dk"
         self._http = HttpSession(cookie_file, cache_dir=cache_dir)
         self._children: list[Child] = []
         self._username: str | None = None
         self._password: str | None = None
         self._primary_parent_path: str | None = None
+
+    @property
+    def source_timezone(self) -> ZoneInfo:
+        """Timezone shared by this instance and all its children."""
+        return self._source_timezone
 
     @property
     def base_url(self) -> str:
@@ -195,6 +208,6 @@ class Skoleintra:
             relogin_cb = _relogin
 
         self._children = [
-            Child(info, self._base_url, self._http)
+            Child(info, self._base_url, self._http, source_timezone=self.source_timezone)
             for info in child_infos
         ]

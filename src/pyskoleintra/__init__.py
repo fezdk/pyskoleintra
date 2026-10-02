@@ -29,11 +29,15 @@ from .exceptions import (
 )
 from .models import (
     Album,
+    ArchivedMessageDetail,
+    ArchivedMessagePage,
+    ArchivedMessageSummary,
     Attachment,
     CalendarEvent,
     ChildInfo,
     ContactBookNote,
     Document,
+    DatePrecision,
     HomeworkEntry,
     MenuItem,
     MessageDetail,
@@ -65,7 +69,7 @@ from .models import (
 )
 from .tabulex import Tabulex
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     # Main classes
@@ -74,11 +78,15 @@ __all__ = [
     "Tabulex",
     # Models
     "Album",
+    "ArchivedMessageDetail",
+    "ArchivedMessagePage",
+    "ArchivedMessageSummary",
     "Attachment",
     "CalendarEvent",
     "ChildInfo",
     "ContactBookNote",
     "Document",
+    "DatePrecision",
     "HomeworkEntry",
     "MenuItem",
     "MessageDetail",

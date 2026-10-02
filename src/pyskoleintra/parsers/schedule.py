@@ -6,7 +6,9 @@ import json
 import re
 from collections import defaultdict
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
+from ..dates import DEFAULT_TIMEZONE
 from ..models import ScheduleDay, ScheduleLesson
 
 
@@ -20,7 +22,9 @@ def extract_class_name(calendar_html: str) -> str | None:
     return match.group(1) if match else None
 
 
-def parse_lesson_events(json_text: str) -> list[ScheduleDay]:
+def parse_lesson_events(
+    json_text: str, *, source_timezone: ZoneInfo = ZoneInfo(DEFAULT_TIMEZONE),
+) -> list[ScheduleDay]:
     """Parse the JSON response from the LessonsEvents calendar endpoint.
 
     Groups lessons by day and returns a sorted list of ScheduleDay instances.
@@ -38,8 +42,8 @@ def parse_lesson_events(json_text: str) -> list[ScheduleDay]:
     day_dates: dict[str, datetime] = {}
 
     for item in data:
-        start = _parse_dotnet_date(item.get("startDate", ""))
-        end = _parse_dotnet_date(item.get("endDate", ""))
+        start = _parse_dotnet_date(item.get("startDate", ""), source_timezone)
+        end = _parse_dotnet_date(item.get("endDate", ""), source_timezone)
         if not start or not end:
             continue
 
@@ -67,13 +71,18 @@ def parse_lesson_events(json_text: str) -> list[ScheduleDay]:
     return result
 
 
-def _parse_dotnet_date(value: str) -> datetime | None:
+def _parse_dotnet_date(
+    value: str, source_timezone: ZoneInfo = ZoneInfo(DEFAULT_TIMEZONE),
+) -> datetime | None:
     """Parse a .NET ``/Date(milliseconds)/`` timestamp."""
     if not value:
         return None
-    match = re.match(r"/Date\((\d+)\)/", str(value))
+    match = re.fullmatch(r"/Date\((-?\d+)\)/", str(value))
     if match:
-        return datetime.fromtimestamp(int(match.group(1)) / 1000)
+        try:
+            return datetime.fromtimestamp(int(match.group(1)) / 1000, source_timezone)
+        except (ValueError, OverflowError, OSError):
+            return None
     return None
 
 

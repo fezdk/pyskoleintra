@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
+from ..dates import DEFAULT_TIMEZONE
 from ..models import HomeworkEntry
 from .common import MONTH_SHORT, make_soup
 
@@ -19,7 +21,9 @@ def find_diary_url(html: str, parent_path: str) -> str | None:
     return match.group(0) if match else None
 
 
-def parse_homework(html: str) -> list[HomeworkEntry]:
+def parse_homework(
+    html: str, *, source_timezone: ZoneInfo = ZoneInfo(DEFAULT_TIMEZONE),
+) -> list[HomeworkEntry]:
     """Parse homework entries from a diary notes page.
 
     Structure: ``#sk-diary-notes-container`` contains ``<ul class="sk-list">``
@@ -54,7 +58,8 @@ def parse_homework(html: str) -> list[HomeworkEntry]:
 
             if len(description) > 2:
                 entries.append(HomeworkEntry(
-                    date=date,
+                    # Legacy model uses midnight datetime for a calendar day.
+                    date=date.replace(tzinfo=source_timezone),
                     subject=subject,
                     description=description,
                 ))

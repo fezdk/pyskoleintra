@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import Enum, IntEnum
+from typing import Literal
+
+
+DatePrecision = Literal["day", "minute", "second", "microsecond"]
 
 
 # ---------------------------------------------------------------------------
@@ -41,6 +45,9 @@ class MessageThread:
     is_replied: bool = False
     thread_participants: str = ""
     unread_messages_count: int = 0
+    timestamp: datetime | None = None
+    calendar_date: date | None = None
+    date_precision: DatePrecision | None = None
 
 
 @dataclass
@@ -52,6 +59,9 @@ class MessageSummary:
     sender: str
     date: str
     unread: bool = False
+    timestamp: datetime | None = None
+    calendar_date: date | None = None
+    date_precision: DatePrecision | None = None
 
 
 @dataclass
@@ -68,6 +78,47 @@ class MessageDetail:
     auto_delete_date: str = ""
     is_archived: bool | None = None
     is_outbox: bool | None = None
+    timestamp: datetime | None = None
+    calendar_date: date | None = None
+    date_precision: DatePrecision | None = None
+
+
+@dataclass
+class ArchivedMessageSummary:
+    """One archive entry. Its ID is separate from inbox message IDs."""
+
+    archive_id: int
+    subject: str
+    sender: str
+    date: str
+    timestamp: datetime | None = None
+    calendar_date: date | None = None
+    date_precision: DatePrecision | None = None
+
+
+@dataclass
+class ArchivedMessageDetail:
+    """Archive content; no inbox ID or synthetic midnight timestamp is exposed."""
+
+    archive_id: int
+    subject: str
+    sender: str
+    date: str
+    content: str
+    recipients: list[str] = field(default_factory=list)
+    attachments: list[Attachment] = field(default_factory=list)
+    timestamp: datetime | None = None
+    calendar_date: date | None = None
+    date_precision: DatePrecision | None = None
+
+
+@dataclass
+class ArchivedMessagePage:
+    """One server page of archive entries, without automatic detail fetching."""
+
+    messages: list[ArchivedMessageSummary]
+    page: int
+    next_page: int | None = None
 
 
 @dataclass

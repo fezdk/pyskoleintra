@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from requests import Response
 
 from .exceptions import ParseError
+from .dates import DEFAULT_TIMEZONE, resolve_timezone
+from .http import response_fetched_at
 from .models import (
     SfoInfo,
     TabulexAgendaItem,
@@ -43,9 +46,25 @@ class Tabulex:
     _HOLIDAYS_PATH = "/guardian/holidays"
     _IDENTITY_CARD_PATH = "/guardian/identitycard"
 
-    def __init__(self, http: HttpSession, sfo_loader: Callable[[], SfoInfo]):
+    def __init__(
+        self, http: HttpSession, sfo_loader: Callable[[], SfoInfo], *,
+        source_timezone: str | ZoneInfo = DEFAULT_TIMEZONE,
+    ):
         self._http = http
         self._sfo_loader = sfo_loader
+        self._source_timezone = resolve_timezone(source_timezone)
+
+    @property
+    def source_timezone(self) -> ZoneInfo:
+        """Timezone inherited from the owning Skoleintra instance."""
+        return self._source_timezone
+
+    def _date_context(self, response: Response) -> dict:
+        fetched_at = response_fetched_at(response)
+        return {
+            "today": fetched_at.astimezone(self.source_timezone).date() if fetched_at else None,
+            "infer_dates": fetched_at is not None,
+        }
 
     def _page(self, path: str | None = None) -> Response:
         """Open the discovered landing page or a same-origin guardian page."""
@@ -65,11 +84,13 @@ class Tabulex:
 
     def dashboard(self) -> TabulexDashboard:
         """Fetch status, notices, this week's agenda, birthdays, and galleries."""
-        return tabulex_parser.parse_tabulex_dashboard(self._page().text)
+        page = self._page()
+        return tabulex_parser.parse_tabulex_dashboard(page.text, **self._date_context(page))
 
     def overview(self) -> TabulexOverview:
         """Fetch the complete one-request POC snapshot from the landing page."""
-        return tabulex_parser.parse_tabulex_overview(self._page().text)
+        page = self._page()
+        return tabulex_parser.parse_tabulex_overview(page.text, **self._date_context(page))
 
     def status(self) -> str:
         """Fetch the child's current status text."""
@@ -85,7 +106,8 @@ class Tabulex:
 
     def agenda(self) -> list[TabulexAgendaItem]:
         """Fetch the agenda currently shown on the guardian dashboard."""
-        return tabulex_parser.parse_tabulex_agenda(self._page().text)
+        page = self._page()
+        return tabulex_parser.parse_tabulex_agenda(page.text, **self._date_context(page))
 
     def navigation(self) -> list[TabulexNavigationItem]:
         """Fetch child-facing sections discovered from the guardian side menu."""

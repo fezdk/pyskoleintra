@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Callable
 
 import requests
@@ -20,6 +23,23 @@ USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 )
+
+
+def response_fetched_at(response: requests.Response | None) -> datetime | None:
+    """Original response time; never substitute today's date for an old cache."""
+    value = getattr(response, "_pyskoleintra_fetched_at", None)
+    return value if isinstance(value, datetime) and value.utcoffset() is not None else None
+
+
+def _record_response_time(response: requests.Response) -> None:
+    value = datetime.now(timezone.utc)
+    try:
+        server_time = parsedate_to_datetime(response.headers.get("Date", ""))
+        if server_time.utcoffset() is not None:
+            value = server_time
+    except (TypeError, ValueError, OverflowError):
+        pass
+    response._pyskoleintra_fetched_at = value
 
 
 class HttpSession:
@@ -102,6 +122,16 @@ class HttpSession:
         resp._content = text.encode("utf-8")  # noqa: SLF001
         resp.encoding = "utf-8"
         resp.url = url
+        try:
+            with open(path + ".json", encoding="utf-8") as f:
+                metadata = json.load(f)
+            if metadata["sha256"] == hashlib.sha256(resp.content).hexdigest():
+                fetched_at = datetime.fromisoformat(metadata["fetched_at"])
+                if fetched_at.utcoffset() is not None:
+                    resp._pyskoleintra_fetched_at = fetched_at
+        except (OSError, ValueError, TypeError, KeyError):
+            # Legacy, corrupt or mismatched metadata has unknown context.
+            pass
         return resp
 
     def _cache_write(self, method: str, url: str, resp: requests.Response) -> None:
@@ -113,6 +143,14 @@ class HttpSession:
         logger.debug("CACHE WRITE: %s %s -> %s", method, url, path)
         with open(path, "w", encoding="utf-8") as f:
             f.write(resp.text)
+        fetched_at = response_fetched_at(resp)
+        # Bind metadata to the exact UTF-8 cache body. A partial or concurrent
+        # write cannot attach a stale date to a different response body.
+        with open(path + ".json", "w", encoding="utf-8") as f:
+            json.dump({
+                "sha256": hashlib.sha256(resp.text.encode("utf-8")).hexdigest(),
+                "fetched_at": fetched_at.isoformat() if fetched_at else None,
+            }, f)
 
     def _request(
         self,
@@ -155,6 +193,8 @@ class HttpSession:
                 except requests.RequestException as exc:
                     raise NetworkError(f"Request failed after re-login: {exc}") from exc
                 self._last_response = resp
+
+        _record_response_time(resp)
 
         # Cache successful GET responses
         if use_cache and method == "GET" and data is None:

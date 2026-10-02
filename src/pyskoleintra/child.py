@@ -15,10 +15,15 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal
 from urllib.parse import urlencode, urljoin, urlsplit
+from zoneinfo import ZoneInfo
 
+from .dates import DEFAULT_TIMEZONE, in_timezone, resolve_timezone
 from .exceptions import NetworkError, NotAuthorizedError, ParseError
+from .http import response_fetched_at
 from .models import (
     Album,
+    ArchivedMessageDetail,
+    ArchivedMessagePage,
     CalendarEvent,
     ChildInfo,
     ContactBookNote,
@@ -66,11 +71,20 @@ class Child:
     Not instantiated directly — use :attr:`Skoleintra.children` instead.
     """
 
-    def __init__(self, info: ChildInfo, base_url: str, http: HttpSession):
+    def __init__(
+        self, info: ChildInfo, base_url: str, http: HttpSession, *,
+        source_timezone: str | ZoneInfo = DEFAULT_TIMEZONE,
+    ):
         self._info = info
         self._base_url = base_url
         self._http = http
-        self._tabulex = Tabulex(http, self.sfo)
+        self._source_timezone = resolve_timezone(source_timezone)
+        self._tabulex = Tabulex(http, self.sfo, source_timezone=self.source_timezone)
+
+    @property
+    def source_timezone(self) -> ZoneInfo:
+        """Timezone inherited from the owning Skoleintra instance."""
+        return self._source_timezone
 
     @property
     def name(self) -> str:
@@ -116,6 +130,14 @@ class Child:
     # Messages
     # -----------------------------------------------------------------------
 
+    def _date_context(self, response) -> dict:
+        return {"source_timezone": self.source_timezone, "fetched_at": response_fetched_at(response)}
+
+    def _message_model(self, data: dict) -> MessageDetail:
+        return msg_parser.parse_message_detail_json(
+            json.dumps(data), **self._date_context(self._http.last_response),
+        )[0]
+
     def inbox(self, *, before_message_id: int | None = None) -> list[MessageThread]:
         """Fetch inbox conversations.
 
@@ -130,15 +152,15 @@ class Child:
                 f"?takeFromRootMessageId={before_message_id}&searchRequest=&filter="
             )
             resp = self._http.get(url)
-            return msg_parser.parse_inbox_page_json(resp.text)
+            return msg_parser.parse_inbox_page_json(resp.text, **self._date_context(resp))
 
-        html = self._get("messages/conversations")
-        return msg_parser.parse_inbox_conversations(html)
+        resp = self._http.get(self._url("messages/conversations"))
+        return msg_parser.parse_inbox_conversations(resp.text, **self._date_context(resp))
 
     def unread_messages(self) -> list[MessageSummary]:
         """Fetch the list of unread messages."""
-        html = self._get("messages/unread")
-        return msg_parser.parse_unread_messages_list(html)
+        resp = self._http.get(self._url("messages/unread"))
+        return msg_parser.parse_unread_messages_list(resp.text, **self._date_context(resp))
 
     def set_messages_read_status(
         self,
@@ -222,14 +244,16 @@ class Child:
                 f"&takeToMessageId=0&searchRequest=&_={int(time.time())}"
             )
             resp = self._http.get(url)
-            return msg_parser.parse_message_detail_json(resp.text)
+            return msg_parser.parse_message_detail_json(resp.text, **self._date_context(resp))
         elif source == "outbox":
             url = f"{self._base_url}{self.parent_path}/messages/outbox/message/{message_id}?pageIndex=1"
         else:
             url = f"{self._base_url}{self.parent_path}/messages/unread/message/{message_id}?pageIndex=1"
 
         resp = self._http.get(url)
-        return msg_parser.parse_message_detail_html(resp.text, str(message_id))
+        return msg_parser.parse_message_detail_html(
+            resp.text, str(message_id), **self._date_context(resp),
+        )
 
     def search_messages(self, query: str) -> list[MessageThread]:
         """Search inbox messages by keyword."""
@@ -238,7 +262,49 @@ class Child:
             f"?searchRequest={query}&filter=&_={int(time.time())}"
         )
         resp = self._http.get(url)
-        return msg_parser.parse_inbox_page_json(resp.text)
+        return msg_parser.parse_inbox_page_json(resp.text, **self._date_context(resp))
+
+    def archived_messages(
+        self, *, page: int = 1, query: str = "", refresh: bool = False,
+    ) -> ArchivedMessagePage:
+        """Fetch one archive page using GET, without fetching individual messages.
+
+        Follow ``next_page`` explicitly with the same query. Archive IDs belong
+        to a separate namespace; do not pass them to inbox mutations. Missing
+        markup and HTTP errors raise ParseError rather than returning an empty page.
+        """
+        if type(page) is not int or page < 1:
+            raise ValueError("Archive page must be a positive integer")
+        if not isinstance(query, str):
+            raise ValueError("Archive query must be a string")
+        url = self._url(f"messages/archive/{page}") + "?" + urlencode({"searchRequest": query})
+        response = self._http.get(url, use_cache=not refresh)
+        if response.status_code != 200:
+            raise ParseError(f"Archive list returned HTTP {response.status_code}")
+        return msg_parser.parse_archived_messages(
+            response.text, base_url=self._base_url, parent_path=self.parent_path,
+            page=page, **self._date_context(response),
+        )
+
+    def archived_message(
+        self, archive_id: str | int, *, refresh: bool = False,
+    ) -> ArchivedMessageDetail:
+        """Fetch one archive copy by archive ID using only GET.
+
+        Archive timestamps have at most day precision. This method sends no
+        read-status action; whether opening an unread archive copy implicitly
+        marks it read on the server has not been verified. HTTP errors (including
+        404/500) and missing detail markup raise ParseError, never a false absence.
+        """
+        archive_id = self._message_id(archive_id)
+        response = self._http.get(
+            self._url(f"messages/archive/message/{archive_id}"), use_cache=not refresh,
+        )
+        if response.status_code != 200:
+            raise ParseError(f"Archive detail returned HTTP {response.status_code}")
+        return msg_parser.parse_archived_message(
+            response.text, archive_id, **self._date_context(response),
+        )
 
     def inbox_message(self, message_id: str | int) -> MessageDetail | None:
         """Fetch one inbox message by numeric ID without changing its read status.
@@ -252,7 +318,7 @@ class Child:
         message_id = self._message_id(message_id)
         provider = self._message_provider()
         data = self._inbox_message_data(provider, message_id)
-        return msg_parser.parse_message_detail_json(json.dumps(data))[0] if data else None
+        return self._message_model(data) if data else None
 
     def archive_message(
         self, message_id: str | int, *, mode: Literal["move", "copy"] = "move",
@@ -288,14 +354,14 @@ class Child:
                     "Message archive copy could not be verified; "
                     "inspect inbox_message() and the archive before retrying"
                 )
-        archived = msg_parser.parse_message_detail_json(json.dumps(data))[0]
+        archived = self._message_model(data)
         if mode == "copy":
             return archived
         try:
             copy_url = self._find_archive_copy(archived)
             # Recheck the original after reading the archive, before deletion.
             current = self._inbox_message_data(provider, message_id)
-            if current is None or msg_parser.parse_message_detail_json(json.dumps(current))[0] != archived:
+            if current is None or self._message_model(current) != archived:
                 raise ParseError("Inbox message changed while preparing the archive move")
             self._require_message_delete_action(current)
             self._delete_inbox_message(provider, message_id)
@@ -507,7 +573,7 @@ class Child:
 
         full_url = f"{self._base_url}{diary_url}"
         resp = self._http.get(full_url)
-        return hw_parser.parse_homework(resp.text)
+        return hw_parser.parse_homework(resp.text, source_timezone=self.source_timezone)
 
     # -----------------------------------------------------------------------
     # Calendar
@@ -523,9 +589,11 @@ class Child:
             end: End of the date range (defaults to 30 days from start).
         """
         if start is None:
-            start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start = datetime.now(self.source_timezone).replace(hour=0, minute=0, second=0, microsecond=0)
+        start = in_timezone(start, self.source_timezone)
         if end is None:
             end = start + timedelta(days=30)
+        end = in_timezone(end, self.source_timezone)
 
         start_ts = int(start.timestamp())
         end_ts = int(end.timestamp())
@@ -535,7 +603,7 @@ class Child:
             f"?departmentIds=[0]&start={start_ts}&end={end_ts}"
         )
         resp = self._http.get(url)
-        return cal_parser.parse_calendar_events(resp.text)
+        return cal_parser.parse_calendar_events(resp.text, source_timezone=self.source_timezone)
 
     # -----------------------------------------------------------------------
     # Weekly plans
@@ -965,11 +1033,13 @@ class Child:
         if week_start is not None:
             start = datetime.strptime(week_start, "%Y-%m-%d")
         if start is None:
-            today = datetime.now()
+            today = datetime.now(self.source_timezone)
             start = today - timedelta(days=today.weekday())
             start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+        start = in_timezone(start, self.source_timezone)
         if end is None:
             end = start + timedelta(days=5)
+        end = in_timezone(end, self.source_timezone)
 
         start_ts = int(start.timestamp())
         end_ts = int(end.timestamp())
@@ -988,4 +1058,4 @@ class Child:
             f"?className={class_name}&start={start_ts}&end={end_ts}"
         )
         resp = self._http.get(url)
-        return sched_parser.parse_lesson_events(resp.text)
+        return sched_parser.parse_lesson_events(resp.text, source_timezone=self.source_timezone)

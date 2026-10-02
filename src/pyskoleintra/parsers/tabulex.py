@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import re
 from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
+
+from ..dates import DEFAULT_TIMEZONE
 from urllib.parse import urlsplit
 
 from ..models import (
@@ -28,17 +31,21 @@ _DATE_PATTERN = re.compile(r"\b(\d{1,2}/\d{1,2}-\d{2,4})\b")
 _TIME_PATTERN = re.compile(r"(?:kl\.\s*)?(\d{1,2})[:.](\d{2})")
 
 
-def parse_tabulex_overview(html: str) -> TabulexOverview:
+def parse_tabulex_overview(
+    html: str, *, today: date | None = None, infer_dates: bool = True,
+) -> TabulexOverview:
     """Parse all POC metadata available from one guardian landing-page GET."""
     return TabulexOverview(
-        dashboard=parse_tabulex_dashboard(html),
+        dashboard=parse_tabulex_dashboard(html, today=today, infer_dates=infer_dates),
         navigation=tuple(parse_tabulex_navigation(html)),
         appointment_types=tuple(parse_tabulex_appointment_types(html)),
         capabilities=parse_tabulex_capabilities(html),
     )
 
 
-def parse_tabulex_dashboard(html: str) -> TabulexDashboard:
+def parse_tabulex_dashboard(
+    html: str, *, today: date | None = None, infer_dates: bool = True,
+) -> TabulexDashboard:
     """Parse the current server-rendered guardian dashboard."""
     soup = make_soup(html)
     dashboard = TabulexDashboard()
@@ -87,7 +94,7 @@ def parse_tabulex_dashboard(html: str) -> TabulexDashboard:
             ):
                 dashboard.news.append(TabulexNewsItem(title=heading, content=body_text))
 
-    dashboard.appointments = parse_tabulex_agenda(html)
+    dashboard.appointments = parse_tabulex_agenda(html, today=today, infer_dates=infer_dates)
     return dashboard
 
 
@@ -239,14 +246,15 @@ def parse_tabulex_agenda(
     html: str,
     *,
     today: date | None = None,
+    infer_dates: bool = True,
 ) -> list[TabulexAgendaItem]:
     """Parse the dated week overview on the guardian dashboard."""
     soup = make_soup(html)
     agenda_table = soup.select_one("#agenda_plan table.agenda")
-    if not agenda_table:
+    if not agenda_table or not infer_dates:
         return []
 
-    reference_date = today or date.today()
+    reference_date = today or datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
     current_date: date | None = None
     items: list[TabulexAgendaItem] = []
     for row in agenda_table.find_all("tr"):
