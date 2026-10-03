@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Et navigerbart kort over SkoleIntras data, handlinger og dækningen i pyskoleintra.">
+  <title>Interfacekort · pyskoleintra</title>
+  <style>
+    :root{--paper:#f5f6f2;--white:#fff;--ink:#20382e;--muted:#647167;--line:#dce2d8;--green:#236346;--green-bg:#e8f2e9;--amber:#815616;--amber-bg:#faf0dc;--rust:#944630;--rust-bg:#f9ede7;--slate:#4e627b;--slate-bg:#ebeff5;--sidebar:238px;--radius:16px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:180px}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}button,input,select{font:inherit}button,select,summary{cursor:pointer}button{color:inherit}a{color:var(--green);text-underline-offset:3px}button,a,input,select,summary{-webkit-tap-highlight-color:transparent}:focus-visible{outline:3px solid #318464;outline-offset:4px}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.2;font-weight:650;letter-spacing:-.035em}h1{font-size:clamp(42px,4.5vw,68px);font-weight:600}h2{font-size:28px}h3{font-size:18px}button{border:0;background:none}svg{display:block}code{font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;background:#eef2ed;border:1px solid #e2e8df;border-radius:5px;padding:1px 4px;overflow-wrap:anywhere}strong{font-weight:650}[hidden]{display:none!important}.js-controls{display:none}.has-js .js-controls{display:flex}.skip-link{position:fixed;top:10px;left:10px;z-index:20;transform:translateY(-160%);background:white;padding:10px 18px}.skip-link:focus{transform:none}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar);background:#edf0e8;border-right:1px solid var(--line);padding:34px 22px 24px;display:flex;flex-direction:column;z-index:10}.brand{display:flex;gap:11px;align-items:center;text-decoration:none;color:var(--ink);font-size:18px;font-weight:650;letter-spacing:-.6px}.brand-mark{width:35px;height:35px;background:var(--ink);color:#eaf1da;display:grid;place-items:center;border-radius:10px}.brand-sub{font-size:11px;color:var(--muted);letter-spacing:.03em;margin-top:8px}.nav-caption{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:43px 12px 12px}.nav{display:flex;flex-direction:column;gap:5px}.nav a{display:flex;gap:12px;align-items:center;min-height:43px;text-decoration:none;color:#4c6052;padding:9px 12px;border-radius:9px;font-size:13px;font-weight:550}.nav a:hover{background:#e4e9df}.nav a.active{background:var(--ink);color:white}.nav svg{width:17px;height:17px;flex-shrink:0}.nav-count{margin-left:auto;opacity:.65;font:11px ui-monospace,monospace}.nav-break{height:13px}.sidebar-bottom{margin-top:auto;padding:24px 12px 0;font-size:11px;color:var(--muted)}.sidebar-bottom p{margin-bottom:8px}.offline-dot{display:inline-block;width:6px;height:6px;background:#548264;border-radius:100%;margin-right:5px}.sidebar-bottom a{font-size:12px}.mobile-header{display:none}main{margin-left:var(--sidebar)}.content{max-width:1330px;margin:auto;padding:46px 48px 0}.eyebrow{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}.eyebrow::before{content:"";display:block;width:17px;height:2px;background:#749875}.hero-top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:37px}.quiet-button{border:1px solid var(--line);border-radius:8px;background:#fcfdfb;padding:7px 13px;font-size:12px;font-weight:550;gap:7px;align-items:center}.quiet-button:hover{background:#eaf0e6}.hero-grid{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end}.hero-subtitle{font-size:18px;letter-spacing:-.3px;line-height:1.5;margin-top:16px;max-width:510px;color:var(--muted)}.snapshot{border-left:1px solid #cbd7c7;padding:5px 0 5px 25px;min-width:170px;margin-bottom:4px;font-size:12px}.snapshot span{display:block;color:var(--muted);margin-bottom:5px}.snapshot strong{font-size:14px}.snapshot code{display:inline-block;margin-top:6px;font-size:10px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:35px}.stat{position:relative;text-align:left;padding:20px 22px 17px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,255,255,.65)}.stat:hover{border-color:#9aac99;background:white}.stat-number{display:block;font-size:36px;line-height:1.3;font-weight:500;letter-spacing:-2px}.stat-label{font-size:12px;font-weight:550;display:flex;align-items:center;gap:6px;margin-top:9px;white-space:nowrap}.stat-arrow{position:absolute;right:20px;top:21px;font-size:18px;opacity:.6}.dot{width:6px;height:6px;background:currentColor;border-radius:50%;display:inline-block}.bygget{color:var(--green)}.delvist{color:var(--amber)}.mangler{color:var(--rust)}.opdagelse{color:var(--slate)}.scope-note{font-size:11px;color:var(--muted);margin-top:12px}.scope-note a{color:inherit}.intro-note{margin-top:27px;font-size:13px;color:var(--muted);max-width:900px}.intro-note p+p{margin-top:10px}.intro-note p:last-child{font-size:12px}
+    .catalog{margin-top:43px}.filter-panel{position:sticky;top:0;z-index:5;background:var(--paper);padding:17px 0 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:block!important}.filter-panel:not(.js-controls){display:none}.search-row{display:flex;gap:12px;align-items:center}.search-box{position:relative;flex:1;min-width:0}.search-box svg{position:absolute;left:15px;top:15px;width:18px;height:18px;color:#6d7b6f;pointer-events:none}.search-box input{width:100%;height:48px;border:1px solid #cbd6c8;border-radius:10px;background:white;color:var(--ink);padding:10px 49px 10px 44px;font-size:14px;min-width:0}.search-box input::placeholder{color:#778177;opacity:1}.search-box input::-webkit-search-cancel-button{display:none}.search-clear{position:absolute;right:8px;top:7px;width:34px;height:34px;border-radius:6px;font-size:22px;line-height:1}.search-clear:hover{background:#edf1e9}.system-select{display:flex;align-items:center;gap:8px}.system-select label{font-size:12px;color:var(--muted)}.system-select select{max-width:185px;height:48px;background:white;border:1px solid #cbd6c8;border-radius:10px;padding:0 34px 0 13px;color:var(--ink);font-size:13px}.filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:12px}.filter-label{font-size:11px;color:var(--muted);margin-right:7px}.filter-chip{font-size:12px;min-height:33px;border-radius:7px;border:1px solid transparent;padding:4px 11px;white-space:nowrap}.filter-chip:hover{background:#e7ece3}.filter-chip.active{background:var(--ink);color:white;border-color:var(--ink)}.filter-chip span{margin-left:6px;opacity:.6;font-size:10px}.reset{font-size:12px;text-decoration:underline;text-underline-offset:3px;padding:5px;margin-left:auto;color:var(--muted)}.result-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0 0;font-size:12px;color:var(--muted)}.result-actions{gap:14px}.text-button{font-size:12px;color:var(--green);padding:4px 0;text-decoration:underline;text-underline-offset:3px}.result-text{min-height:20px}.system-section{scroll-margin-top:180px;margin-top:32px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:17px}.section-heading h2{font-size:23px}.section-number{font:11px ui-monospace,monospace;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 7px;margin-left:10px;vertical-align:middle;letter-spacing:0}.section-overline{color:var(--muted);font-size:11px;margin-bottom:7px}.section-description{font-size:12px;color:var(--muted);max-width:750px;margin-bottom:18px}.section-description p{margin-bottom:8px}.card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}.feature{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;scroll-margin-top:185px;min-width:0}.feature:target{border-color:#5c8b6c;box-shadow:0 0 0 2px #d0e2cf}.feature:hover{border-color:#b1c3ae}.feature summary{padding:22px;list-style:none}.feature summary::-webkit-details-marker{display:none}.card-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}.status{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:650;padding:3px 8px;border-radius:5px;letter-spacing:.02em}.status::before{content:"";width:5px;height:5px;background:currentColor;border-radius:50%}.status.bygget{background:var(--green-bg)}.status.delvist{background:var(--amber-bg)}.status.mangler{background:var(--rust-bg)}.status.opdagelse{background:var(--slate-bg)}.expand{color:#7b877c;font-size:23px;line-height:1;font-weight:350}.feature[open] .expand{font-size:0}.feature[open] .expand::after{content:"−";font-size:23px}.feature h3{font-size:18px;margin-bottom:11px}.card-preview{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:39px;line-height:1.65}.summary-label{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;color:#57705e;margin-top:16px}.summary-label span{font-size:15px}.feature[open] .summary-label{display:none}.feature[open] .card-preview{display:none}.feature[open] summary{padding-bottom:17px;border-bottom:1px solid #edf0e9}.feature[open] h3{margin-bottom:0}.card-details{padding:20px 22px}.card-details dl{margin:0}.fact{margin-bottom:20px}.card-details dt,.proposal dt{font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:650;margin-bottom:6px;color:#637160}.card-details dd{font-size:13px;margin:0;line-height:1.75}.gap{padding:15px;background:#f5f5ee;border-left:2px solid #b5c0a3;border-radius:0 8px 8px 0}.gap dt{color:#526544}.permalink{display:inline-block;margin-top:17px;font-size:10px;color:var(--muted);text-decoration:none}.permalink:hover{text-decoration:underline}.permalink span{margin-left:4px}.empty{margin:24px 0;border:1px dashed #b9c7b2;border-radius:var(--radius);padding:45px 24px;text-align:center}.empty h3{font-size:21px;margin-bottom:9px}.empty p{font-size:13px;color:var(--muted);margin-bottom:17px}.empty button{background:var(--ink);color:white;border-radius:8px;font-size:13px;padding:9px 15px}
+    .long-section{margin-top:64px;padding-top:32px;border-top:1px solid var(--line);scroll-margin-top:30px}.section-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:650;margin-bottom:12px}.long-section>h2{margin-bottom:18px}.proposal-intro{font-size:13px;color:var(--muted);max-width:830px}.proposal-intro p+p{margin-top:12px}.proposals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:25px}.proposal{display:flex;gap:16px;align-items:flex-start;border:1px solid var(--line);background:#fafbf7;border-radius:var(--radius);padding:23px;min-width:0}.proposal-number{font:12px ui-monospace,monospace;color:#788b70;flex-shrink:0;margin-top:3px}.proposal h3{font-size:17px;margin-bottom:10px}.proposal h3 strong{font-weight:650}.proposal p,.proposal dd{font-size:12px;color:var(--muted)}.proposal dl{margin:19px 0 0}.proposal dt{margin-top:13px}.proposal dd{margin:0;color:var(--ink)}.notes{max-width:960px}.note{border:1px solid var(--line);border-radius:12px;background:#fafbf8;margin-top:11px}.note>summary{list-style:none;padding:19px 22px;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600}.note>summary::-webkit-details-marker{display:none}.note>summary::after{content:"+";font-size:22px;font-weight:400;color:var(--muted)}.note[open]>summary::after{content:"−"}.note .prose{padding:0 22px 22px;font-size:13px}.prose p+p{margin-top:13px}.prose ul,.prose ol{padding-left:20px;margin:13px 0}.prose li+li{margin-top:13px}.prose{color:#536455}.prose strong{color:var(--ink)}.source-body{font-size:13px;max-width:870px}.footer{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:55px;border-top:1px solid var(--line);padding:22px 0 28px;font-size:11px;color:var(--muted)}.footer a{color:inherit}.noscript{background:var(--amber-bg);padding:15px;border-radius:10px;margin:25px 0;color:var(--amber);font-size:13px}body:not(.has-js) .filter-panel{display:none!important}.screen-reader{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(min-width:1600px){.card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:1150px){:root{--sidebar:205px}.sidebar{padding:29px 15px 20px}.content{padding:34px 30px 0}.brand{font-size:16px}.hero-grid{grid-template-columns:1fr}.snapshot{display:flex;gap:12px;align-items:center;border:0;padding:0;margin:0;flex-wrap:wrap}.snapshot span,.snapshot code{margin:0}.snapshot strong{font-size:12px}.hero-top{margin-bottom:28px}.stats{gap:9px}.stat{padding:16px}.stat-arrow{right:15px;top:18px}.stat-label{font-size:11px}.system-select label{display:none}.feature summary{padding:19px}.card-details{padding:19px}.proposal{padding:20px;gap:12px}}
+    @media(max-width:780px){:root{--sidebar:0px}html{scroll-padding-top:205px}.sidebar{position:sticky;top:0;width:100%;height:auto;padding:0;background:var(--paper);border:0;border-bottom:1px solid var(--line);z-index:10}.sidebar .brand,.brand-sub,.nav-caption,.sidebar-bottom,.nav-break{display:none}.nav{flex-direction:row;gap:5px;overflow-x:auto;padding:9px 18px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}.nav a{padding:7px 12px;white-space:nowrap;min-height:35px;font-size:11px;flex-shrink:0}.nav svg,.nav-count{display:none}.mobile-header{display:flex;justify-content:space-between;align-items:center;padding:17px 22px 13px}.mobile-header .brand{display:flex;font-size:16px}.mobile-header .brand-mark{width:29px;height:29px;border-radius:8px}.mobile-header>span{font-size:10px;color:var(--muted)}.content{padding:27px 22px 0}.hero-top{margin-bottom:26px}.hero-top .eyebrow{font-size:9px}.quiet-button{font-size:11px;padding:5px 9px}.hero-grid{gap:17px}h1{font-size:46px}.hero-subtitle{font-size:16px;margin-top:12px}.stats{margin-top:27px}.stat-number{font-size:29px}.stat-label{font-size:10px}.stat-arrow{display:none}.stat{padding:14px 12px}.intro-note{font-size:12px}.catalog{margin-top:28px}.filter-panel{top:53px;padding-top:12px}.search-row{gap:8px}.search-box input{height:44px;font-size:13px;padding-left:38px}.search-box svg{left:12px;top:13px;width:16px;height:16px}.search-clear{top:5px}.system-select select{height:44px;font-size:12px;max-width:132px;padding-left:9px;padding-right:22px}.filter-row{gap:4px}.filter-label{display:none}.filter-chip{font-size:11px;padding:4px 8px;min-height:32px}.filter-chip span{font-size:9px;margin-left:4px}.reset{font-size:11px}.card-grid{gap:11px}.feature h3{font-size:17px}.section-heading h2{font-size:22px}.system-section,.feature{scroll-margin-top:220px}.long-section{margin-top:44px;padding-top:27px;scroll-margin-top:72px}.proposals{grid-template-columns:1fr}.long-section>h2{font-size:26px}.result-row{font-size:11px;gap:8px}.text-button{font-size:11px}.footer{align-items:flex-start}}
+    @media(max-width:540px){.stats{grid-template-columns:repeat(2,1fr);gap:9px}.stat{padding:14px 16px}.stat-number{font-size:31px}.stat-label{font-size:11px;margin-top:5px}.stat-arrow{display:block;font-size:15px;right:17px;top:21px}.card-grid{grid-template-columns:1fr}.filter-row{gap:3px;row-gap:7px}.filter-chip{padding:4px 7px}.filter-chip span{margin-left:3px}.reset{margin-left:0;font-size:10px}.card-preview{-webkit-line-clamp:2;min-height:0}.feature summary{padding:20px}.card-heading{margin-bottom:14px}.feature h3{font-size:19px}.feature .summary-label{margin-top:13px}.section-description{font-size:12px}.search-row{flex-wrap:wrap}.search-box{flex-basis:100%}.system-select{order:2}.system-select select{height:33px;width:100%;max-width:none;font-size:11px;border-radius:7px}.system-select label{display:block;font-size:10px}.filter-row{margin-top:8px}.filter-panel{padding-bottom:10px}.result-row{align-items:flex-start}.result-actions{flex-shrink:0}.feature,.system-section{scroll-margin-top:260px}.snapshot{gap:8px;font-size:11px}.intro-note{margin-top:20px}.hero-top .quiet-button{padding:5px 8px}.hero-top{gap:10px}.eyebrow{letter-spacing:.1em}.scope-note{font-size:10px}.footer{font-size:10px;gap:15px}.note>summary{font-size:13px;gap:12px}.note .prose{font-size:12px}}
+    @media(max-width:380px){h1{font-size:37px}.hero-top .eyebrow{font-size:8px}.mobile-header>span{font-size:8px}.content{padding-left:18px;padding-right:18px}.snapshot{font-size:10px}.stat-label{font-size:10px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+    @media print{html{scroll-behavior:auto}body{background:white;font-size:11px}.sidebar,.mobile-header,.js-controls,.scope-note,.permalink,.summary-label,.stat-arrow,.footer{display:none!important}main{margin:0}.content{padding:0;max-width:none}.hero-top{margin-bottom:15px}.hero-grid{display:block}h1{font-size:34px}.hero-subtitle{font-size:15px}.snapshot{margin-top:15px;border:0;padding:0}.stats{margin-top:20px;grid-template-columns:repeat(4,1fr)}.stat{padding:12px;background:white}.stat-number{font-size:24px}.stat-label{font-size:10px}.intro-note{margin-top:16px;font-size:11px}.catalog{margin-top:20px}.system-section,.long-section{margin-top:25px;scroll-margin:0}.card-grid,.proposals{display:block}.feature,.proposal,.note{break-inside:avoid;margin-bottom:12px;border-radius:7px;box-shadow:none!important}.feature summary,.card-details{padding:13px}.feature h3{font-size:16px}.card-details dd,.proposal p,.proposal dd,.note .prose{font-size:11px}.gap{padding:10px}.feature .expand,.note>summary::after{display:none}.fact{margin-bottom:12px}.proposal{display:flex}.result-row{padding:0}.notes{max-width:none}.source-body{font-size:11px}a{color:inherit}.status{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#overblik">Spring til indhold</a>
+  <div class="mobile-header"><a class="brand" href="#overblik"><span class="brand-mark" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h6l2 2 2-2h6v15h-6l-2 2-2-2H4zM12 6v15"/></svg></span>pyskoleintra</a><span>LOKALT INTERFACEKORT</span></div>
+  <aside class="sidebar" aria-label="Navigation">
+    <a class="brand" href="#overblik"><span class="brand-mark" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h6l2 2 2-2h6v15h-6l-2 2-2-2H4zM12 6v15"/></svg></span>pyskoleintra</a>
+    <p class="brand-sub">BIBLIOTEKETS MULIGHEDER</p><p class="nav-caption">Interfacekort</p>
+    <nav class="nav" aria-label="Afsnit">
+      <a href="#overblik" class="active" aria-current="location"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1"/><rect x="12" y="2" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="12" y="12" width="6" height="6" rx="1"/></svg>Overblik</a>
+      <a href="#skoleintra"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 17V6l7-4 7 4v11H3zM7 17v-5h6v5M6 7h2m4 0h2"/></svg>SkoleIntra<span class="nav-count">@@SCHOOL_COUNT@@</span></a>
+      <a href="#sfo"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="10" cy="6" r="3"/><path d="M4 18v-3a6 6 0 0112 0v3M3 8l-2 2m16-2 2 2"/></svg>SFO &amp; Tabulex<span class="nav-count">@@SFO_COUNT@@</span></a>
+      <span class="nav-break" aria-hidden="true"></span>
+      <a href="#naeste-skridt"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 15h4V9h4V4h6M12 4h5v5"/></svg>Næste skridt<span class="nav-count">07</span></a>
+      <a href="#forbehold"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M10 9v6m0-10v1"/></svg>Forbehold &amp; metode</a>
+      <a href="#kilder"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M5 2h7l4 4v12H5zM12 2v5h4M8 11h5m-5 3h5"/></svg>Kilder</a>
+    </nav>
+    <div class="sidebar-bottom"><p><span class="offline-dot"></span>Virker helt offline</p><p>Gennemgået @@REVIEWED@@<br>Version @@VERSION@@ · @@COMMIT@@</p><a href="interface-map.md">Åbn Markdown-kilden ↗</a></div>
+  </aside>
+  <main id="main"><div class="content">
+    <header id="overblik" class="hero" data-nav-section>
+      <div class="hero-top"><span class="eyebrow">Overblik over biblioteket</span><button type="button" class="quiet-button js-controls" id="print-button"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M5 7V2h10v5M5 14H2V7h16v7h-3M5 11h10v7H5z"/></svg>Udskriv</button></div>
+      <div class="hero-grid"><div><h1>Interfacekort<span style="color:#73906a">.</span></h1><p class="hero-subtitle">Data, handlinger og bibliotekets dækning.<br>Et sted at vælge det næste skridt.</p></div><div class="snapshot"><span>Seneste gennemgang</span><strong>@@REVIEWED@@</strong><code>v@@VERSION@@ / @@COMMIT@@</code></div></div>
+      <div class="stats" aria-label="Status for de kortlagte områder">@@STATS@@</div>
+      <p class="scope-note">@@TOTAL@@ kortlagte områder · Bygget beskriver de nævnte funktioner, ikke fuld dækning. <a href="#forbehold">Læs afgrænsningen</a></p>
+      <div class="intro-note">@@INTRO@@</div>
+    </header>
+    <noscript><p class="noscript">Alle områder kan læses og foldes ud uden JavaScript. Slå JavaScript til for søgning og filtre.</p></noscript>
+    <div class="catalog" id="katalog">
+      <div class="filter-panel js-controls" role="search" aria-label="Find områder">
+        <div class="search-row"><div class="search-box"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="m12 12 5 5"/></svg><label class="screen-reader" for="search">Søg i områder, handlinger og metoder</label><input id="search" type="search" placeholder="Søg efter område, handling eller metode…" autocomplete="off" spellcheck="false"><button id="clear-search" class="search-clear" type="button" aria-label="Ryd søgning" hidden>×</button></div><div class="system-select"><label for="system">System</label><select id="system"><option value="all">Begge systemer</option><option value="skoleintra">SkoleIntra</option><option value="sfo">SFO &amp; Tabulex</option></select></div></div>
+        <div class="filter-row" role="group" aria-label="Filtrér efter dækning"><span class="filter-label">Dækning</span>@@FILTERS@@<button type="button" class="reset" id="reset-filters" hidden>Nulstil filtre</button></div>
+      </div>
+      <div class="result-row"><p class="result-text" id="results" role="status" aria-live="polite">Viser @@TOTAL@@ af @@TOTAL@@ områder</p><div class="result-actions js-controls"><button class="text-button" id="expand-all" type="button">Vis alle detaljer</button></div></div>
+      <div class="empty" id="empty-state" hidden><h3>Ingen områder matcher</h3><p>Prøv et andet søgeord, eller ryd filtrene for at se hele kortet.</p><button type="button" id="reset-empty">Vis alle områder</button></div>
+      <section class="system-section" id="skoleintra" data-nav-section><div class="section-heading"><div><p class="section-overline">SKOLENS FORÆLDREINTERFACE</p><h2>SkoleIntra<span class="section-number" data-count-for="skoleintra">@@SCHOOL_COUNT@@</span></h2></div></div><div class="card-grid">@@SCHOOL_CARDS@@</div></section>
+      <section class="system-section" id="sfo" data-nav-section><div class="section-heading"><div><p class="section-overline">EN SEPARAT APPLIKATION BAG SSO</p><h2>SFO &amp; Tabulex<span class="section-number" data-count-for="sfo">@@SFO_COUNT@@</span></h2></div></div><div class="section-description">@@SFO_INTRO@@</div><div class="card-grid">@@SFO_CARDS@@</div></section>
+    </div>
+    <section class="long-section" id="naeste-skridt" data-nav-section><p class="section-kicker">Fra overblik til prioritering</p><h2>Hvad skal være det næste?</h2><div class="proposal-intro">@@PROPOSAL_INTRO@@</div><div class="proposals">@@PROPOSALS@@</div></section>
+    <section class="long-section" id="forbehold" data-nav-section><p class="section-kicker">Sådan skal kortet forstås</p><h2>Forbehold &amp; metode</h2><div class="notes"><details class="note" id="saadan-laeses-kortet"><summary>Hvad betyder statusserne?</summary><div class="prose">@@LEGEND@@<p><strong>Kun opdagelse:</strong> Biblioteket kan registrere, at en handling tilbydes, men kan ikke udføre den. Denne status er særskilt fra usikkerhed om selve UI'et.</p></div></details><details class="note"><summary>Vigtige nuancer ved eksisterende funktioner</summary><div class="prose">@@NUANCES@@</div></details><details class="note"><summary>Observationer og begrænsninger</summary><div class="prose">@@LIMITATIONS@@</div></details></div></section>
+    <section class="long-section" id="kilder" data-nav-section><p class="section-kicker">Grundlaget for kortlægningen</p><h2>Kilder &amp; videre brug</h2><div class="prose source-body">@@SOURCES@@<p>HTML-siden er bygget fra <a href="interface-map.md">den lokale Markdown-kilde</a>. Den indeholder ingen private sidesnapshots og kontakter ikke SkoleIntra.</p></div></section>
+    <footer class="footer"><span>pyskoleintra · Interfacekort · @@TOTAL@@ områder</span><a href="#overblik">Til toppen ↑</a></footer>
+  </div></main>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => [...document.querySelectorAll(selector)];
+      const cards = $$('.feature');
+      const search = $('#search'), system = $('#system');
+      const filters = $$('[data-status-filter]');
+      let selectedStatus = 'all';
+      const normalize = (text) => text.toLocaleLowerCase('da').replaceAll('æ','ae').replaceAll('ø','oe').replaceAll('å','aa').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const searchText = new Map(cards.map(card => [card, normalize(card.dataset.search)]));
+
+      function updateExpandLabel() {
+        const visible = cards.filter(card => !card.hidden);
+        $('#expand-all').textContent = visible.length && visible.every(card => card.open) ? 'Skjul alle detaljer' : 'Vis alle detaljer';
+        $('#expand-all').disabled = !visible.length;
+      }
+      function filterCards() {
+        const words = normalize(search.value.trim()).split(/\s+/).filter(Boolean);
+        let visible = 0;
+        const groupCounts = {skoleintra: 0, sfo: 0};
+        cards.forEach(card => {
+          const matches = (system.value === 'all' || system.value === card.dataset.system)
+            && (selectedStatus === 'all' || selectedStatus === card.dataset.status)
+            && words.every(word => searchText.get(card).includes(word));
+          card.hidden = !matches;
+          if (matches) { visible++; groupCounts[card.dataset.system]++; }
+        });
+        for (const [key,count] of Object.entries(groupCounts)) {
+          $('#' + key).hidden = count === 0;
+          $('[data-count-for="' + key + '"]').textContent = count;
+        }
+        $('#results').textContent = 'Viser ' + visible + ' af ' + cards.length + ' områder';
+        $('#empty-state').hidden = visible !== 0;
+        $('#clear-search').hidden = !search.value;
+        $('#reset-filters').hidden = !(search.value || selectedStatus !== 'all' || system.value !== 'all');
+        filters.forEach(button => {
+          const active = button.dataset.statusFilter === selectedStatus;
+          button.classList.toggle('active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+        updateExpandLabel();
+      }
+      function resetFilters() { search.value = ''; system.value = 'all'; selectedStatus = 'all'; filterCards(); }
+      search.addEventListener('input', filterCards);
+      system.addEventListener('change', filterCards);
+      $('#clear-search').addEventListener('click', () => {search.value = ''; filterCards(); search.focus();});
+      $('#reset-filters').addEventListener('click', () => {resetFilters(); search.focus();});
+      $('#reset-empty').addEventListener('click', () => {resetFilters(); search.focus();});
+      filters.forEach(button => button.addEventListener('click', () => {selectedStatus = button.dataset.statusFilter; filterCards();}));
+      $$('[data-filter-value]').forEach(button => button.addEventListener('click', () => {
+        selectedStatus = button.dataset.filterValue; search.value = ''; system.value = 'all'; filterCards();
+        $('#katalog').scrollIntoView({block:'start'}); search.focus({preventScroll:true});
+      }));
+      $('#expand-all').addEventListener('click', () => {
+        const visible = cards.filter(card => !card.hidden);
+        const open = !visible.every(card => card.open);
+        visible.forEach(card => {card.open = open;}); updateExpandLabel();
+      });
+      cards.forEach(card => card.addEventListener('toggle', updateExpandLabel));
+
+      function navigateToHash() {
+        let id;
+        try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }
+        const target = document.getElementById(id);
+        if (!target) return;
+        if (target.matches('.feature')) {
+          resetFilters(); target.open = true;
+        } else if (target.matches('.system-section')) {
+          resetFilters();
+        } else if (target.matches('details')) {
+          target.open = true;
+        }
+        requestAnimationFrame(() => target.scrollIntoView({block:'start'}));
+      }
+      window.addEventListener('hashchange', navigateToHash);
+      // A repeated click on the current hash must also reveal a filtered section.
+      $$('a[href^="#"]').forEach(link => link.addEventListener('click', () => {
+        const target = document.getElementById(link.hash.slice(1));
+        if (target?.matches('.system-section') || target?.matches('.feature')) resetFilters();
+        if (target?.matches('.feature')) target.open = true;
+        if (location.hash === link.hash) requestAnimationFrame(navigateToHash);
+      }));
+      const navLinks = $$('.nav a');
+      const sections = $$('[data-nav-section]');
+      let scheduled = false;
+      function updateNavigation() {
+        scheduled = false;
+        const anchor = window.innerWidth <= 780 ? 260 : 190;
+        let current = sections[0];
+        sections.forEach(section => {if (!section.hidden && section.getBoundingClientRect().top <= anchor) current = section;});
+        navLinks.forEach(link => {
+          const active = link.hash === '#' + current.id;
+          link.classList.toggle('active', active);
+          if (active) link.setAttribute('aria-current', 'location'); else link.removeAttribute('aria-current');
+        });
+      }
+      window.addEventListener('scroll', () => {if (!scheduled) {scheduled = true; requestAnimationFrame(updateNavigation);}}, {passive:true});
+      window.addEventListener('resize', updateNavigation);
+      document.addEventListener('keydown', event => {
+        if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey
+            && !/INPUT|TEXTAREA|SELECT/.test(event.target.tagName) && !event.target.isContentEditable) {
+          event.preventDefault(); search.focus();
+        }
+        if (event.key === 'Escape' && document.activeElement === search) {
+          search.value = ''; filterCards();
+        }
+      });
+      let beforePrint = [];
+      window.addEventListener('beforeprint', () => {
+        beforePrint = $$('details').map(element => [element,element.open]);
+        beforePrint.forEach(([element]) => {element.open = true;});
+      });
+      window.addEventListener('afterprint', () => {beforePrint.forEach(([element,open]) => {element.open = open;});});
+      $('#print-button').addEventListener('click', () => window.print());
+      document.body.classList.add('has-js');
+      filterCards(); navigateToHash(); updateNavigation();
+      document.documentElement.dataset.ready = 'true';
+    })();
+  </script>
+</body>
+</html>

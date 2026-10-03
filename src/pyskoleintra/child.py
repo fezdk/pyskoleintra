@@ -26,6 +26,7 @@ from .models import (
     ArchivedMessagePage,
     CalendarEvent,
     ChildInfo,
+    ClassParentContact,
     ContactBookNote,
     Document,
     HomeworkEntry,
@@ -38,8 +39,10 @@ from .models import (
     ReadingContractBook,
     ReadingContractEntry,
     ScheduleDay,
+    SchoolContacts,
     SfoInfo,
     StudentContact,
+    StaffContact,
     WeeklyPlan,
 )
 from .parsers import (
@@ -1002,10 +1005,133 @@ class Child:
     # Contacts
     # -----------------------------------------------------------------------
 
-    def contacts(self) -> list[StudentContact]:
-        """Fetch student contact cards."""
-        html = self._get("contacts/students/cards")
-        return contacts_parser.parse_student_contacts(html)
+    def contacts(self, *, detailed: bool = False, refresh: bool = False) -> list[StudentContact]:
+        """Fetch the index, optionally including cards and parent reports.
+
+        The default keeps the inexpensive single-page call. ``detailed=True``
+        fetches each card and five reports, attaching parents to their student.
+        Report generation uses read-only POST forms, not contact mutations.
+        Photos are URLs; returned models perform no network I/O. ``refresh``
+        bypasses the optional development GET cache.
+        """
+        html = self._contact_get(self._url("contacts/students/cards"), refresh=refresh)
+        students = contacts_parser.parse_student_contacts(html, self._base_url)
+        if detailed and students:
+            students = [self._student_contact_card(s, refresh=refresh) for s in students]
+            self._enrich_contacts(students, refresh=refresh)
+        return students
+
+    def contact(self, student_id: int, *, refresh: bool = False) -> StudentContact:
+        """Fetch one listed student's full card and attached parent/contact data.
+
+        IDs come from ``contacts()``, not ``Child.parent_id``. Report joins use
+        exact unique full names, never guessed IDs or partial names.
+        """
+        if type(student_id) is not int or student_id <= 0:
+            raise ValueError("student_id must be a positive integer")
+        matches = [s for s in self.contacts(refresh=refresh) if s.id == student_id]
+        if len(matches) != 1:
+            raise KeyError("Student ID is not in this child's contact directory")
+        student = self._student_contact_card(matches[0], refresh=refresh)
+        self._enrich_contacts([student], refresh=refresh)
+        return student
+
+    def school_contacts(self, *, refresh: bool = False) -> SchoolContacts:
+        """School-wide address and grouped contact people, separate from students."""
+        html = self._contact_get(self._url("contacts/school"), refresh=refresh)
+        return contacts_parser.parse_school_contacts(html, self._base_url)
+
+    def staff_contacts(self, *, refresh: bool = False) -> list[StaffContact]:
+        """School staff, using the aggregate card URL discovered in the selector."""
+        html = self._contact_get(self._url("contacts/staff/cards"), refresh=refresh)
+        options = contacts_parser.contact_options(html, "staff", self._base_url)
+        ids_by_name: dict[str, list[int]] = {}
+        for name, _, id in options:
+            if id is not None:
+                ids_by_name.setdefault(name, []).append(id)
+        aggregate = next((url for _, url, _ in options
+                          if urlsplit(url).path.endswith("/contacts/staff/contactcards")), None)
+        if aggregate:
+            return contacts_parser.parse_staff_contacts(
+                self._contact_get(aggregate, refresh=refresh), self._base_url,
+                ids_by_name=ids_by_name,
+            )
+        result = []
+        for _, url, id in options:
+            if id is not None:
+                items = contacts_parser.parse_staff_contacts(
+                    self._contact_get(url, refresh=refresh), self._base_url,
+                )
+                if len(items) != 1:
+                    raise ParseError("Expected one staff contact card")
+                items[0].id = id
+                result.extend(items)
+        return result
+
+    def contact_parents(self, *, refresh: bool = False) -> list[ClassParentContact]:
+        """Class representatives (Kontaktforældre), not every student's parents."""
+        html = self._contact_get(self._url("contacts/contactparents"), refresh=refresh)
+        return contacts_parser.parse_class_parents(html)
+
+    def _contact_url(self, url: str) -> str:
+        target = urljoin(self._base_url, url)
+        parsed, base = urlsplit(target), urlsplit(self._base_url)
+        if ((parsed.scheme, parsed.netloc) != (base.scheme, base.netloc)
+                or not parsed.path.startswith(self.parent_path + "/contacts/")):
+            raise ParseError("Contact URL is outside this child's contact directory")
+        return target
+
+    @staticmethod
+    def _check_contact_response(response) -> None:
+        if response.status_code in (401, 403) or 300 <= response.status_code < 400:
+            raise NotAuthorizedError("Contact page requires an authenticated session")
+        if response.status_code != 200:
+            raise NetworkError(f"Contact request returned HTTP {response.status_code}")
+
+    def _contact_get(self, url: str, *, refresh: bool) -> str:
+        response = self._http.get(self._contact_url(url), use_cache=not refresh)
+        self._check_contact_response(response)
+        return response.text
+
+    def _student_contact_card(self, student: StudentContact, *, refresh: bool) -> StudentContact:
+        url = self._contact_url(student.source_url)
+        result = contacts_parser.parse_student_card(
+            self._contact_get(url, refresh=refresh), student_id=student.id, source_url=url,
+        )
+        result.class_name = student.class_name
+        return result
+
+    def _enrich_contacts(self, students: list[StudentContact], *, refresh: bool) -> None:
+        form_html = self._contact_get(self._url("contacts/studentlist"), refresh=refresh)
+        action, defaults, choices, class_name = contacts_parser.report_form(form_html)
+        action = self._contact_url(action)
+        if urlsplit(action).path != urlsplit(self._url("contacts/studentlist")).path:
+            raise ParseError("Unexpected contact report form action")
+        for student in students:
+            student.class_name = student.class_name or class_name
+        reports = [
+            ("Adresse- og telefonliste", "addresses"),
+            ("Kontaktoplysninger", "parent_contacts"),
+            ("Elevernes e-mailadresser", "student_emails"),
+            ("Forældres e-mailadresser", "parent_emails"),
+            ("Forældres profilbilleder", "parent_photos"),
+        ]
+        for label, kind in reports:
+            if label not in choices:
+                raise ParseError("Required contact report type is unavailable")
+            response = self._http.post(action, data={**defaults, "ListTemplateType": choices[label]})
+            if response.status_code in (302, 303):
+                location = response.headers.get("Location")
+                if not location:
+                    raise ParseError("Contact report redirect has no destination")
+                url = self._contact_url(location)
+                if urlsplit(url).path != urlsplit(self._url("contacts/studentlist/list")).path:
+                    raise ParseError("Unexpected contact report redirect")
+                html = self._contact_get(url, refresh=refresh)
+            else:
+                self._check_contact_response(response)
+                html = response.text
+            contacts_parser.enrich_students(students, html, kind, self._base_url)
 
     # -----------------------------------------------------------------------
     # Documents

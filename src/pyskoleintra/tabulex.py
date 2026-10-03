@@ -8,11 +8,13 @@ from zoneinfo import ZoneInfo
 
 from requests import Response
 
-from .exceptions import ParseError
+from .exceptions import NetworkError, NotAuthorizedError, ParseError
 from .dates import DEFAULT_TIMEZONE, resolve_timezone
 from .http import response_fetched_at
 from .models import (
     SfoInfo,
+    StaffContact,
+    TabulexContact,
     TabulexAgendaItem,
     TabulexAppointment,
     TabulexAppointmentInput,
@@ -27,6 +29,7 @@ from .models import (
     TabulexRecurrence,
 )
 from .parsers import tabulex as tabulex_parser
+from .parsers import tabulex_contacts as contacts_parser
 from .parsers.common import make_soup, resolve_url
 from .sso import follow_sso
 
@@ -146,6 +149,29 @@ class Tabulex:
         """Fetch non-sensitive visibility preferences from the identity card."""
         page = self._page(self._IDENTITY_CARD_PATH)
         return tabulex_parser.parse_tabulex_identity_preferences(page.text)
+
+    def _contact_page(self, path: str) -> Response:
+        page = self._page(path)
+        if page.status_code in (401, 403) or 300 <= page.status_code < 400:
+            raise NotAuthorizedError("SFO contact page requires authentication")
+        if page.status_code != 200:
+            raise NetworkError(f"SFO contact request returned HTTP {page.status_code}")
+        return page
+
+    def contacts(self) -> list[TabulexContact]:
+        """Fetch the child's SFO contacts, including pickup and access flags.
+
+        These are separate from school parents and class representatives.
+        This reads the page only; it never submits contact editing forms.
+        """
+        return contacts_parser.parse_tabulex_contacts(
+            self._contact_page("/guardian/contacts").text,
+        )
+
+    def staff_contacts(self) -> list[StaffContact]:
+        """Fetch this SFO's staff and photo URLs, independently of school staff."""
+        page = self._contact_page("/guardian/staff")
+        return contacts_parser.parse_tabulex_staff(page.text, str(page.url))
 
     def create_appointment(self, appointment: TabulexAppointmentInput) -> Response:
         """Create an appointment and return the underlying HTTP response."""

@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Et navigerbart kort over SkoleIntras data, handlinger og dækningen i pyskoleintra.">
+  <title>Interfacekort · pyskoleintra</title>
+  <style>
+    :root{--paper:#f5f6f2;--white:#fff;--ink:#20382e;--muted:#647167;--line:#dce2d8;--green:#236346;--green-bg:#e8f2e9;--amber:#815616;--amber-bg:#faf0dc;--rust:#944630;--rust-bg:#f9ede7;--slate:#4e627b;--slate-bg:#ebeff5;--sidebar:238px;--radius:16px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:180px}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}button,input,select{font:inherit}button,select,summary{cursor:pointer}button{color:inherit}a{color:var(--green);text-underline-offset:3px}button,a,input,select,summary{-webkit-tap-highlight-color:transparent}:focus-visible{outline:3px solid #318464;outline-offset:4px}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.2;font-weight:650;letter-spacing:-.035em}h1{font-size:clamp(42px,4.5vw,68px);font-weight:600}h2{font-size:28px}h3{font-size:18px}button{border:0;background:none}svg{display:block}code{font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;background:#eef2ed;border:1px solid #e2e8df;border-radius:5px;padding:1px 4px;overflow-wrap:anywhere}strong{font-weight:650}[hidden]{display:none!important}.js-controls{display:none}.has-js .js-controls{display:flex}.skip-link{position:fixed;top:10px;left:10px;z-index:20;transform:translateY(-160%);background:white;padding:10px 18px}.skip-link:focus{transform:none}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar);background:#edf0e8;border-right:1px solid var(--line);padding:34px 22px 24px;display:flex;flex-direction:column;z-index:10}.brand{display:flex;gap:11px;align-items:center;text-decoration:none;color:var(--ink);font-size:18px;font-weight:650;letter-spacing:-.6px}.brand-mark{width:35px;height:35px;background:var(--ink);color:#eaf1da;display:grid;place-items:center;border-radius:10px}.brand-sub{font-size:11px;color:var(--muted);letter-spacing:.03em;margin-top:8px}.nav-caption{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:43px 12px 12px}.nav{display:flex;flex-direction:column;gap:5px}.nav a{display:flex;gap:12px;align-items:center;min-height:43px;text-decoration:none;color:#4c6052;padding:9px 12px;border-radius:9px;font-size:13px;font-weight:550}.nav a:hover{background:#e4e9df}.nav a.active{background:var(--ink);color:white}.nav svg{width:17px;height:17px;flex-shrink:0}.nav-count{margin-left:auto;opacity:.65;font:11px ui-monospace,monospace}.nav-break{height:13px}.sidebar-bottom{margin-top:auto;padding:24px 12px 0;font-size:11px;color:var(--muted)}.sidebar-bottom p{margin-bottom:8px}.offline-dot{display:inline-block;width:6px;height:6px;background:#548264;border-radius:100%;margin-right:5px}.sidebar-bottom a{font-size:12px}.mobile-header{display:none}main{margin-left:var(--sidebar)}.content{max-width:1330px;margin:auto;padding:46px 48px 0}.eyebrow{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}.eyebrow::before{content:"";display:block;width:17px;height:2px;background:#749875}.hero-top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:37px}.quiet-button{border:1px solid var(--line);border-radius:8px;background:#fcfdfb;padding:7px 13px;font-size:12px;font-weight:550;gap:7px;align-items:center}.quiet-button:hover{background:#eaf0e6}.hero-grid{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end}.hero-subtitle{font-size:18px;letter-spacing:-.3px;line-height:1.5;margin-top:16px;max-width:510px;color:var(--muted)}.snapshot{border-left:1px solid #cbd7c7;padding:5px 0 5px 25px;min-width:170px;margin-bottom:4px;font-size:12px}.snapshot span{display:block;color:var(--muted);margin-bottom:5px}.snapshot strong{font-size:14px}.snapshot code{display:inline-block;margin-top:6px;font-size:10px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:35px}.stat{position:relative;text-align:left;padding:20px 22px 17px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,255,255,.65)}.stat:hover{border-color:#9aac99;background:white}.stat-number{display:block;font-size:36px;line-height:1.3;font-weight:500;letter-spacing:-2px}.stat-label{font-size:12px;font-weight:550;display:flex;align-items:center;gap:6px;margin-top:9px;white-space:nowrap}.stat-arrow{position:absolute;right:20px;top:21px;font-size:18px;opacity:.6}.dot{width:6px;height:6px;background:currentColor;border-radius:50%;display:inline-block}.bygget{color:var(--green)}.delvist{color:var(--amber)}.mangler{color:var(--rust)}.opdagelse{color:var(--slate)}.scope-note{font-size:11px;color:var(--muted);margin-top:12px}.scope-note a{color:inherit}.intro-note{margin-top:27px;font-size:13px;color:var(--muted);max-width:900px}.intro-note p+p{margin-top:10px}.intro-note p:last-child{font-size:12px}
+    .catalog{margin-top:43px}.filter-panel{position:sticky;top:0;z-index:5;background:var(--paper);padding:17px 0 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:block!important}.filter-panel:not(.js-controls){display:none}.search-row{display:flex;gap:12px;align-items:center}.search-box{position:relative;flex:1;min-width:0}.search-box svg{position:absolute;left:15px;top:15px;width:18px;height:18px;color:#6d7b6f;pointer-events:none}.search-box input{width:100%;height:48px;border:1px solid #cbd6c8;border-radius:10px;background:white;color:var(--ink);padding:10px 49px 10px 44px;font-size:14px;min-width:0}.search-box input::placeholder{color:#778177;opacity:1}.search-box input::-webkit-search-cancel-button{display:none}.search-clear{position:absolute;right:8px;top:7px;width:34px;height:34px;border-radius:6px;font-size:22px;line-height:1}.search-clear:hover{background:#edf1e9}.system-select{display:flex;align-items:center;gap:8px}.system-select label{font-size:12px;color:var(--muted)}.system-select select{max-width:185px;height:48px;background:white;border:1px solid #cbd6c8;border-radius:10px;padding:0 34px 0 13px;color:var(--ink);font-size:13px}.filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:12px}.filter-label{font-size:11px;color:var(--muted);margin-right:7px}.filter-chip{font-size:12px;min-height:33px;border-radius:7px;border:1px solid transparent;padding:4px 11px;white-space:nowrap}.filter-chip:hover{background:#e7ece3}.filter-chip.active{background:var(--ink);color:white;border-color:var(--ink)}.filter-chip span{margin-left:6px;opacity:.6;font-size:10px}.reset{font-size:12px;text-decoration:underline;text-underline-offset:3px;padding:5px;margin-left:auto;color:var(--muted)}.result-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0 0;font-size:12px;color:var(--muted)}.result-actions{gap:14px}.text-button{font-size:12px;color:var(--green);padding:4px 0;text-decoration:underline;text-underline-offset:3px}.result-text{min-height:20px}.system-section{scroll-margin-top:180px;margin-top:32px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:17px}.section-heading h2{font-size:23px}.section-number{font:11px ui-monospace,monospace;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 7px;margin-left:10px;vertical-align:middle;letter-spacing:0}.section-overline{color:var(--muted);font-size:11px;margin-bottom:7px}.section-description{font-size:12px;color:var(--muted);max-width:750px;margin-bottom:18px}.section-description p{margin-bottom:8px}.card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}.feature{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;scroll-margin-top:185px;min-width:0}.feature:target{border-color:#5c8b6c;box-shadow:0 0 0 2px #d0e2cf}.feature:hover{border-color:#b1c3ae}.feature summary{padding:22px;list-style:none}.feature summary::-webkit-details-marker{display:none}.card-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}.status{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:650;padding:3px 8px;border-radius:5px;letter-spacing:.02em}.status::before{content:"";width:5px;height:5px;background:currentColor;border-radius:50%}.status.bygget{background:var(--green-bg)}.status.delvist{background:var(--amber-bg)}.status.mangler{background:var(--rust-bg)}.status.opdagelse{background:var(--slate-bg)}.expand{color:#7b877c;font-size:23px;line-height:1;font-weight:350}.feature[open] .expand{font-size:0}.feature[open] .expand::after{content:"−";font-size:23px}.feature h3{font-size:18px;margin-bottom:11px}.card-preview{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:39px;line-height:1.65}.summary-label{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;color:#57705e;margin-top:16px}.summary-label span{font-size:15px}.feature[open] .summary-label{display:none}.feature[open] .card-preview{display:none}.feature[open] summary{padding-bottom:17px;border-bottom:1px solid #edf0e9}.feature[open] h3{margin-bottom:0}.card-details{padding:20px 22px}.card-details dl{margin:0}.fact{margin-bottom:20px}.card-details dt,.proposal dt{font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:650;margin-bottom:6px;color:#637160}.card-details dd{font-size:13px;margin:0;line-height:1.75}.gap{padding:15px;background:#f5f5ee;border-left:2px solid #b5c0a3;border-radius:0 8px 8px 0}.gap dt{color:#526544}.permalink{display:inline-block;margin-top:17px;font-size:10px;color:var(--muted);text-decoration:none}.permalink:hover{text-decoration:underline}.permalink span{margin-left:4px}.empty{margin:24px 0;border:1px dashed #b9c7b2;border-radius:var(--radius);padding:45px 24px;text-align:center}.empty h3{font-size:21px;margin-bottom:9px}.empty p{font-size:13px;color:var(--muted);margin-bottom:17px}.empty button{background:var(--ink);color:white;border-radius:8px;font-size:13px;padding:9px 15px}
+    .long-section{margin-top:64px;padding-top:32px;border-top:1px solid var(--line);scroll-margin-top:30px}.section-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:650;margin-bottom:12px}.long-section>h2{margin-bottom:18px}.proposal-intro{font-size:13px;color:var(--muted);max-width:830px}.proposal-intro p+p{margin-top:12px}.proposals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:25px}.proposal{display:flex;gap:16px;align-items:flex-start;border:1px solid var(--line);background:#fafbf7;border-radius:var(--radius);padding:23px;min-width:0}.proposal-number{font:12px ui-monospace,monospace;color:#788b70;flex-shrink:0;margin-top:3px}.proposal h3{font-size:17px;margin-bottom:10px}.proposal h3 strong{font-weight:650}.proposal p,.proposal dd{font-size:12px;color:var(--muted)}.proposal dl{margin:19px 0 0}.proposal dt{margin-top:13px}.proposal dd{margin:0;color:var(--ink)}.notes{max-width:960px}.note{border:1px solid var(--line);border-radius:12px;background:#fafbf8;margin-top:11px}.note>summary{list-style:none;padding:19px 22px;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600}.note>summary::-webkit-details-marker{display:none}.note>summary::after{content:"+";font-size:22px;font-weight:400;color:var(--muted)}.note[open]>summary::after{content:"−"}.note .prose{padding:0 22px 22px;font-size:13px}.prose p+p{margin-top:13px}.prose ul,.prose ol{padding-left:20px;margin:13px 0}.prose li+li{margin-top:13px}.prose{color:#536455}.prose strong{color:var(--ink)}.source-body{font-size:13px;max-width:870px}.footer{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:55px;border-top:1px solid var(--line);padding:22px 0 28px;font-size:11px;color:var(--muted)}.footer a{color:inherit}.noscript{background:var(--amber-bg);padding:15px;border-radius:10px;margin:25px 0;color:var(--amber);font-size:13px}body:not(.has-js) .filter-panel{display:none!important}.screen-reader{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(min-width:1600px){.card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:1150px){:root{--sidebar:205px}.sidebar{padding:29px 15px 20px}.content{padding:34px 30px 0}.brand{font-size:16px}.hero-grid{grid-template-columns:1fr}.snapshot{display:flex;gap:12px;align-items:center;border:0;padding:0;margin:0;flex-wrap:wrap}.snapshot span,.snapshot code{margin:0}.snapshot strong{font-size:12px}.hero-top{margin-bottom:28px}.stats{gap:9px}.stat{padding:16px}.stat-arrow{right:15px;top:18px}.stat-label{font-size:11px}.system-select label{display:none}.feature summary{padding:19px}.card-details{padding:19px}.proposal{padding:20px;gap:12px}}
+    @media(max-width:780px){:root{--sidebar:0px}html{scroll-padding-top:205px}.sidebar{position:sticky;top:0;width:100%;height:auto;padding:0;background:var(--paper);border:0;border-bottom:1px solid var(--line);z-index:10}.sidebar .brand,.brand-sub,.nav-caption,.sidebar-bottom,.nav-break{display:none}.nav{flex-direction:row;gap:5px;overflow-x:auto;padding:9px 18px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}.nav a{padding:7px 12px;white-space:nowrap;min-height:35px;font-size:11px;flex-shrink:0}.nav svg,.nav-count{display:none}.mobile-header{display:flex;justify-content:space-between;align-items:center;padding:17px 22px 13px}.mobile-header .brand{display:flex;font-size:16px}.mobile-header .brand-mark{width:29px;height:29px;border-radius:8px}.mobile-header>span{font-size:10px;color:var(--muted)}.content{padding:27px 22px 0}.hero-top{margin-bottom:26px}.hero-top .eyebrow{font-size:9px}.quiet-button{font-size:11px;padding:5px 9px}.hero-grid{gap:17px}h1{font-size:46px}.hero-subtitle{font-size:16px;margin-top:12px}.stats{margin-top:27px}.stat-number{font-size:29px}.stat-label{font-size:10px}.stat-arrow{display:none}.stat{padding:14px 12px}.intro-note{font-size:12px}.catalog{margin-top:28px}.filter-panel{top:53px;padding-top:12px}.search-row{gap:8px}.search-box input{height:44px;font-size:13px;padding-left:38px}.search-box svg{left:12px;top:13px;width:16px;height:16px}.search-clear{top:5px}.system-select select{height:44px;font-size:12px;max-width:132px;padding-left:9px;padding-right:22px}.filter-row{gap:4px}.filter-label{display:none}.filter-chip{font-size:11px;padding:4px 8px;min-height:32px}.filter-chip span{font-size:9px;margin-left:4px}.reset{font-size:11px}.card-grid{gap:11px}.feature h3{font-size:17px}.section-heading h2{font-size:22px}.system-section,.feature{scroll-margin-top:220px}.long-section{margin-top:44px;padding-top:27px;scroll-margin-top:72px}.proposals{grid-template-columns:1fr}.long-section>h2{font-size:26px}.result-row{font-size:11px;gap:8px}.text-button{font-size:11px}.footer{align-items:flex-start}}
+    @media(max-width:540px){.stats{grid-template-columns:repeat(2,1fr);gap:9px}.stat{padding:14px 16px}.stat-number{font-size:31px}.stat-label{font-size:11px;margin-top:5px}.stat-arrow{display:block;font-size:15px;right:17px;top:21px}.card-grid{grid-template-columns:1fr}.filter-row{gap:3px;row-gap:7px}.filter-chip{padding:4px 7px}.filter-chip span{margin-left:3px}.reset{margin-left:0;font-size:10px}.card-preview{-webkit-line-clamp:2;min-height:0}.feature summary{padding:20px}.card-heading{margin-bottom:14px}.feature h3{font-size:19px}.feature .summary-label{margin-top:13px}.section-description{font-size:12px}.search-row{flex-wrap:wrap}.search-box{flex-basis:100%}.system-select{order:2}.system-select select{height:33px;width:100%;max-width:none;font-size:11px;border-radius:7px}.system-select label{display:block;font-size:10px}.filter-row{margin-top:8px}.filter-panel{padding-bottom:10px}.result-row{align-items:flex-start}.result-actions{flex-shrink:0}.feature,.system-section{scroll-margin-top:260px}.snapshot{gap:8px;font-size:11px}.intro-note{margin-top:20px}.hero-top .quiet-button{padding:5px 8px}.hero-top{gap:10px}.eyebrow{letter-spacing:.1em}.scope-note{font-size:10px}.footer{font-size:10px;gap:15px}.note>summary{font-size:13px;gap:12px}.note .prose{font-size:12px}}
+    @media(max-width:380px){h1{font-size:37px}.hero-top .eyebrow{font-size:8px}.mobile-header>span{font-size:8px}.content{padding-left:18px;padding-right:18px}.snapshot{font-size:10px}.stat-label{font-size:10px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+    @media print{html{scroll-behavior:auto}body{background:white;font-size:11px}.sidebar,.mobile-header,.js-controls,.scope-note,.permalink,.summary-label,.stat-arrow,.footer{display:none!important}main{margin:0}.content{padding:0;max-width:none}.hero-top{margin-bottom:15px}.hero-grid{display:block}h1{font-size:34px}.hero-subtitle{font-size:15px}.snapshot{margin-top:15px;border:0;padding:0}.stats{margin-top:20px;grid-template-columns:repeat(4,1fr)}.stat{padding:12px;background:white}.stat-number{font-size:24px}.stat-label{font-size:10px}.intro-note{margin-top:16px;font-size:11px}.catalog{margin-top:20px}.system-section,.long-section{margin-top:25px;scroll-margin:0}.card-grid,.proposals{display:block}.feature,.proposal,.note{break-inside:avoid;margin-bottom:12px;border-radius:7px;box-shadow:none!important}.feature summary,.card-details{padding:13px}.feature h3{font-size:16px}.card-details dd,.proposal p,.proposal dd,.note .prose{font-size:11px}.gap{padding:10px}.feature .expand,.note>summary::after{display:none}.fact{margin-bottom:12px}.proposal{display:flex}.result-row{padding:0}.notes{max-width:none}.source-body{font-size:11px}a{color:inherit}.status{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#overblik">Spring til indhold</a>
+  <div class="mobile-header"><a class="brand" href="#overblik"><span class="brand-mark" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h6l2 2 2-2h6v15h-6l-2 2-2-2H4zM12 6v15"/></svg></span>pyskoleintra</a><span>LOKALT INTERFACEKORT</span></div>
+  <aside class="sidebar" aria-label="Navigation">
+    <a class="brand" href="#overblik"><span class="brand-mark" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h6l2 2 2-2h6v15h-6l-2 2-2-2H4zM12 6v15"/></svg></span>pyskoleintra</a>
+    <p class="brand-sub">BIBLIOTEKETS MULIGHEDER</p><p class="nav-caption">Interfacekort</p>
+    <nav class="nav" aria-label="Afsnit">
+      <a href="#overblik" class="active" aria-current="location"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1"/><rect x="12" y="2" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="12" y="12" width="6" height="6" rx="1"/></svg>Overblik</a>
+      <a href="#skoleintra"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 17V6l7-4 7 4v11H3zM7 17v-5h6v5M6 7h2m4 0h2"/></svg>SkoleIntra<span class="nav-count">24</span></a>
+      <a href="#sfo"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="10" cy="6" r="3"/><path d="M4 18v-3a6 6 0 0112 0v3M3 8l-2 2m16-2 2 2"/></svg>SFO &amp; Tabulex<span class="nav-count">12</span></a>
+      <span class="nav-break" aria-hidden="true"></span>
+      <a href="#naeste-skridt"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 15h4V9h4V4h6M12 4h5v5"/></svg>Næste skridt<span class="nav-count">07</span></a>
+      <a href="#forbehold"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M10 9v6m0-10v1"/></svg>Forbehold &amp; metode</a>
+      <a href="#kilder"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M5 2h7l4 4v12H5zM12 2v5h4M8 11h5m-5 3h5"/></svg>Kilder</a>
+    </nav>
+    <div class="sidebar-bottom"><p><span class="offline-dot"></span>Virker helt offline</p><p>Gennemgået 2. oktober 2026<br>Version 0.3.1 · c961457</p><a href="interface-map.md">Åbn Markdown-kilden ↗</a></div>
+  </aside>
+  <main id="main"><div class="content">
+    <header id="overblik" class="hero" data-nav-section>
+      <div class="hero-top"><span class="eyebrow">Overblik over biblioteket</span><button type="button" class="quiet-button js-controls" id="print-button"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M5 7V2h10v5M5 14H2V7h16v7h-3M5 11h10v7H5z"/></svg>Udskriv</button></div>
+      <div class="hero-grid"><div><h1>Interfacekort<span style="color:#73906a">.</span></h1><p class="hero-subtitle">Data, handlinger og bibliotekets dækning.<br>Et sted at vælge det næste skridt.</p></div><div class="snapshot"><span>Seneste gennemgang</span><strong>2. oktober 2026</strong><code>v0.3.1 / c961457</code></div></div>
+      <div class="stats" aria-label="Status for de kortlagte områder"><button type="button" class="stat bygget" data-filter-value="bygget" aria-label="Vis områder med status Bygget"><span class="stat-number">07</span><span class="stat-label"><span class="dot"></span>Bygget</span><span class="stat-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="stat delvist" data-filter-value="delvist" aria-label="Vis områder med status Delvist"><span class="stat-number">14</span><span class="stat-label"><span class="dot"></span>Delvist</span><span class="stat-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="stat mangler" data-filter-value="mangler" aria-label="Vis områder med status Mangler"><span class="stat-number">13</span><span class="stat-label"><span class="dot"></span>Mangler</span><span class="stat-arrow" aria-hidden="true">↗</span></button>
+<button type="button" class="stat opdagelse" data-filter-value="opdagelse" aria-label="Vis områder med status Kun opdagelse"><span class="stat-number">02</span><span class="stat-label"><span class="dot"></span>Kun opdagelse</span><span class="stat-arrow" aria-hidden="true">↗</span></button></div>
+      <p class="scope-note">36 kortlagte områder · Bygget beskriver de nævnte funktioner, ikke fuld dækning. <a href="#forbehold">Læs afgrænsningen</a></p>
+      <div class="intro-note"><p>Dette er et lokalt beslutningsgrundlag for næste skridt i <strong>pyskoleintra</strong>. Det sammenholder forældreinterfacets data og handlinger med bibliotekets offentlige API. Beskeder, læseregistreringer og SFO-aftaler har den mest udviklede støtte. De største huller er forsidens opslag og påmindelser, fravær, blanketter samt dokumentoversigterne. Kontaktkort og kontaktlister er efterfølgende udbygget som beskrevet nedenfor.</p>
+<p>Gennemgået <strong>2. oktober 2026</strong> mod commit <strong><code>c961457</code></strong>, pakkeversion <strong>0.3.1</strong>. Gennemgangen dækker én forældrekonto og dens skoleopsætning, herunder de 14 hovedmenupunkter og SFO/Tabulex. Den er en let kortlægning, ikke en fuld endpoint- eller rettighedsaudit.</p>
+<p><strong>Kontaktmodeller og læsemetoder er implementeret lokalt 4. oktober 2026</strong> oven på den angivne commit. Elever har tilknyttede forældrekontakter og lokale opslag; skole- og SFO-kontakter hentes separat. De nye metoder er afprøvet mod kontoen uden kontaktændringer.</p>
+<p><strong>Kontaktoversigterne er undersøgt nærmere 3. oktober 2026.</strong> Elevkort, personalekort, otte genererede listetyper og tre SFO-kontaktsider er læst. Download af ét elevfoto, ét forældrefoto og ét personalefoto er verificeret. Ingen kontaktoplysninger er ændret.</p></div>
+    </header>
+    <noscript><p class="noscript">Alle områder kan læses og foldes ud uden JavaScript. Slå JavaScript til for søgning og filtre.</p></noscript>
+    <div class="catalog" id="katalog">
+      <div class="filter-panel js-controls" role="search" aria-label="Find områder">
+        <div class="search-row"><div class="search-box"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="m12 12 5 5"/></svg><label class="screen-reader" for="search">Søg i områder, handlinger og metoder</label><input id="search" type="search" placeholder="Søg efter område, handling eller metode…" autocomplete="off" spellcheck="false"><button id="clear-search" class="search-clear" type="button" aria-label="Ryd søgning" hidden>×</button></div><div class="system-select"><label for="system">System</label><select id="system"><option value="all">Begge systemer</option><option value="skoleintra">SkoleIntra</option><option value="sfo">SFO &amp; Tabulex</option></select></div></div>
+        <div class="filter-row" role="group" aria-label="Filtrér efter dækning"><span class="filter-label">Dækning</span><button type="button" class="filter-chip active" data-status-filter="all" aria-pressed="true">Alle <span>36</span></button><button type="button" class="filter-chip" data-status-filter="bygget" aria-pressed="false">Bygget <span>7</span></button>
+<button type="button" class="filter-chip" data-status-filter="delvist" aria-pressed="false">Delvist <span>14</span></button>
+<button type="button" class="filter-chip" data-status-filter="mangler" aria-pressed="false">Mangler <span>13</span></button>
+<button type="button" class="filter-chip" data-status-filter="opdagelse" aria-pressed="false">Kun opdagelse <span>2</span></button><button type="button" class="reset" id="reset-filters" hidden>Nulstil filtre</button></div>
+      </div>
+      <div class="result-row"><p class="result-text" id="results" role="status" aria-live="polite">Viser 36 af 36 områder</p><div class="result-actions js-controls"><button class="text-button" id="expand-all" type="button">Vis alle detaljer</button></div></div>
+      <div class="empty" id="empty-state" hidden><h3>Ingen områder matcher</h3><p>Prøv et andet søgeord, eller ryd filtrene for at se hele kortet.</p><button type="button" id="reset-empty">Vis alle områder</button></div>
+      <section class="system-section" id="skoleintra" data-nav-section><div class="section-heading"><div><p class="section-overline">SKOLENS FORÆLDREINTERFACE</p><h2>SkoleIntra<span class="section-number" data-count-for="skoleintra">24</span></h2></div></div><div class="card-grid"><details class="feature" id="skoleintra-forside-og-navigation" data-system="skoleintra" data-status="delvist" data-search="Forside og navigation Menupunkt, URL, tæller, ikon; forsidens indholdsmoduler Navigere, vise mere indhold, tilpasse forside Delvist: frontpage_menu() Kun menuen er modelleret; ingen samlet forside eller indholdsoversigt.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Forside og navigation</h3><span class="card-preview">Menupunkt, URL, tæller, ikon; forsidens indholdsmoduler</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Menupunkt, URL, tæller, ikon; forsidens indholdsmoduler</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Navigere, vise mere indhold, tilpasse forside</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>frontpage_menu()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Kun menuen er modelleret; ingen samlet forside eller indholdsoversigt.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-forside-og-navigation">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-opslag-og-fastgjorte-opslag" data-system="skoleintra" data-status="mangler" data-search="Opslag og fastgjorte opslag Opslagstekst, afsender, modtagere og relation til forside Tilføj/fjern fra min forside; slå påmindelser til/fra. Rediger/slet findes i kontekstmenu/skabelon Mangler Læse opslag og pagination først; rettigheder og skrivekontrakter bagefter.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Opslag og fastgjorte opslag</h3><span class="card-preview">Opslagstekst, afsender, modtagere og relation til forside</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Opslagstekst, afsender, modtagere og relation til forside</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Tilføj/fjern fra min forside; slå påmindelser til/fra. Rediger/slet findes i kontekstmenu/skabelon</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Læse opslag og pagination først; rettigheder og skrivekontrakter bagefter.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-opslag-og-fastgjorte-opslag">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-paamindelser" data-system="skoleintra" data-status="mangler" data-search="Påmindelser ID, type, tekst, dato, relateret barn, læst/ulæst, flere sider Åbne, markere læst/ulæst, markere alle læst; særskilt set-status findes i konfigurationen Mangler Egen notifikationsmodel og liste. Menuens tællere er ikke en notifikationsliste.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Påmindelser</h3><span class="card-preview">ID, type, tekst, dato, relateret barn, læst/ulæst, flere sider</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>ID, type, tekst, dato, relateret barn, læst/ulæst, flere sider</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Åbne, markere læst/ulæst, markere alle læst; særskilt set-status findes i konfigurationen</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Egen notifikationsmodel og liste. Menuens tællere er ikke en notifikationsliste.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-paamindelser">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-indbakke-og-beskedtraade" data-system="skoleintra" data-status="bygget" data-search="Indbakke og beskedtråde Besked-/tråd-ID, emne, afsender, deltagere, dato, indhold, bilag, læse- og arkivstatus Søge, læse tråd, læst/ulæst, arkivere, slette; svare, svar alle, videresende Bygget for læsning/søgning og udvalgte handlinger: inbox(), search_messages(), message(), inbox_message(), mark_messages_read(), mark_messages_unread(), archive_message(), delete_message() Opret/send, svar, svar alle, videresend og modtagernes læsestatus mangler. Udvidelse af meget lange tråde er ikke særskilt eksponeret.">
+  <summary><div class="card-heading"><span class="status bygget">Bygget</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Indbakke og beskedtråde</h3><span class="card-preview">Besked-/tråd-ID, emne, afsender, deltagere, dato, indhold, bilag, læse- og arkivstatus</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Besked-/tråd-ID, emne, afsender, deltagere, dato, indhold, bilag, læse- og arkivstatus</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Søge, læse tråd, læst/ulæst, arkivere, slette; svare, svar alle, videresende</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Bygget</strong> for læsning/søgning og udvalgte handlinger: <code>inbox()</code>, <code>search_messages()</code>, <code>message()</code>, <code>inbox_message()</code>, <code>mark_messages_read()</code>, <code>mark_messages_unread()</code>, <code>archive_message()</code>, <code>delete_message()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Opret/send, svar, svar alle, videresend og modtagernes læsestatus mangler. Udvidelse af meget lange tråde er ikke særskilt eksponeret.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-indbakke-og-beskedtraade">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-ulaeste-beskeder" data-system="skoleintra" data-status="delvist" data-search="Ulæste beskeder Besked-ID, emne, afsender, dato, ulæst-flag Liste og markering Delvist: unread_messages() og de fælles statusmetoder Ingen offentlig pagination/refresh på listen; ikke dokumenteret som komplet. Fravær fra listen beviser ikke, at en besked er læst.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Ulæste beskeder</h3><span class="card-preview">Besked-ID, emne, afsender, dato, ulæst-flag</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Besked-ID, emne, afsender, dato, ulæst-flag</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Liste og markering</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>unread_messages()</code> og de fælles statusmetoder</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Ingen offentlig pagination/refresh på listen; ikke dokumenteret som komplet. Fravær fra listen beviser ikke, at en besked er læst.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-ulaeste-beskeder">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-beskedarkiv" data-system="skoleintra" data-status="bygget" data-search="Beskedarkiv Separat arkiv-ID, emne, afsender, datotekst, indhold, bilag Liste, søgning, sidevalg; slet findes i arkiv-UI Bygget læsning: archived_messages(), archived_message() Ingen offentlig sletning af arkivkopier eller gendannelse. En gendannelsesfunktion er heller ikke fundet i UI&#x27;et.">
+  <summary><div class="card-heading"><span class="status bygget">Bygget</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Beskedarkiv</h3><span class="card-preview">Separat arkiv-ID, emne, afsender, datotekst, indhold, bilag</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Separat arkiv-ID, emne, afsender, datotekst, indhold, bilag</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Liste, søgning, sidevalg; slet findes i arkiv-UI</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Bygget</strong> læsning: <code>archived_messages()</code>, <code>archived_message()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Ingen offentlig sletning af arkivkopier eller gendannelse. En gendannelsesfunktion er heller ikke fundet i UI&#x27;et.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-beskedarkiv">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-sendte-beskeder" data-system="skoleintra" data-status="delvist" data-search="Sendte beskeder Modtagere, emne, dato og enkelte beskeddetaljer Liste, søgning, sidevalg, arkivering og sletning Delvist: message(id, source=&quot;outbox&quot;) læser en kendt besked Ingen offentlig liste/søgning i Sendte. De eksisterende arkiv-/slettemetoder er for modtagne indbakkebeskeder.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Sendte beskeder</h3><span class="card-preview">Modtagere, emne, dato og enkelte beskeddetaljer</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Modtagere, emne, dato og enkelte beskeddetaljer</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Liste, søgning, sidevalg, arkivering og sletning</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>message(id, source=&quot;outbox&quot;)</code> læser en kendt besked</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Ingen offentlig liste/søgning i Sendte. De eksisterende arkiv-/slettemetoder er for modtagne indbakkebeskeder.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-sendte-beskeder">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-kladder-og-ny-besked" data-system="skoleintra" data-status="mangler" data-search="Kladder og ny besked Kladder og beskededitor Ny besked og slet kladder er observeret; øvrige editorhandlinger er ikke undersøgt Mangler Kladder, modtagervalg, bilag og afsendelse kræver egen undersøgelse. Editor blev ikke åbnet.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Kladder og ny besked</h3><span class="card-preview">Kladder og beskededitor</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Kladder og beskededitor</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Ny besked og slet kladder er observeret; øvrige editorhandlinger er ikke undersøgt</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Kladder, modtagervalg, bilag og afsendelse kræver egen undersøgelse. Editor blev ikke åbnet.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-kladder-og-ny-besked">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-kontaktbog" data-system="skoleintra" data-status="delvist" data-search="Kontaktbog Notedato, forfatter, tekst, svar, set-af, profiloplysninger Tilføj note, svar, kategorierne Forsinket/Fravær og flere noter Delvist: contact_book() Opret/svar, kategori som datafelt, filtrering og pagination mangler.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Kontaktbog</h3><span class="card-preview">Notedato, forfatter, tekst, svar, set-af, profiloplysninger</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Notedato, forfatter, tekst, svar, set-af, profiloplysninger</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Tilføj note, svar, kategorierne Forsinket/Fravær og flere noter</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>contact_book()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Opret/svar, kategori som datafelt, filtrering og pagination mangler.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-kontaktbog">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-fravaer" data-system="skoleintra" data-status="mangler" data-search="Fravær Elev, valgt dato og modtagere er indlejret i siden; UI-tekster omtaler lektioner, fravær og sent fremmøde Registrere/ændre fravær og advisere modtagere beskrives i den sidespecifikke UI; låste og historiske dage har begrænsninger Mangler Læsning og registrering er et selvstændigt modul. Save-endpoint og faktisk rettighed er endnu ikke undersøgt.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Fravær</h3><span class="card-preview">Elev, valgt dato og modtagere er indlejret i siden; UI-tekster omtaler lektioner, fravær og sent fremmøde</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Elev, valgt dato og modtagere er indlejret i siden; UI-tekster omtaler lektioner, fravær og sent fremmøde</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Registrere/ændre fravær og advisere modtagere beskrives i den sidespecifikke UI; låste og historiske dage har begrænsninger</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Læsning og registrering er et selvstændigt modul. Save-endpoint og faktisk rettighed er endnu ikke undersøgt.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-fravaer">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-fravaersstatistik" data-system="skoleintra" data-status="mangler" data-search="Fraværsstatistik Elev/klasse, perioder, fag, fraværstyper; UI-kolonner for lektioner og procent Filtrere efter periode, fag og type Mangler Struktureret statistik. Siden oplyser IsEmpty=False, men selve resultatdatasættet er ikke hentet.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Fraværsstatistik</h3><span class="card-preview">Elev/klasse, perioder, fag, fraværstyper; UI-kolonner for lektioner og procent</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Elev/klasse, perioder, fag, fraværstyper; UI-kolonner for lektioner og procent</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Filtrere efter periode, fag og type</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Struktureret statistik. Siden oplyser <code>IsEmpty=False</code>, men selve resultatdatasættet er ikke hentet.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-fravaersstatistik">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-kalender-og-skema" data-system="skoleintra" data-status="delvist" data-search="Kalender og skema Begivenheds-ID, titel, start/slut, heldag, sted, beskrivelse; skemafag, lærer, klasse/rum og tid Dag/uge/måned, dato- og kildefiltre, udskrift, kalenderabonnement Delvist: calendar_events() læser skolebegivenheder; schedule() læser skema UI&#x27;et har også Aktiviteter og SFO, som ikke dækkes af metoderne. Abonnement, begivenhedsdetaljer og andre filtre mangler. Slette-dialog findes kun som skabelonevidens.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Kalender og skema</h3><span class="card-preview">Begivenheds-ID, titel, start/slut, heldag, sted, beskrivelse; skemafag, lærer, klasse/rum og tid</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Begivenheds-ID, titel, start/slut, heldag, sted, beskrivelse; skemafag, lærer, klasse/rum og tid</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Dag/uge/måned, dato- og kildefiltre, udskrift, kalenderabonnement</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>calendar_events()</code> læser skolebegivenheder; <code>schedule()</code> læser skema</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>UI&#x27;et har også <strong>Aktiviteter</strong> og <strong>SFO</strong>, som ikke dækkes af metoderne. Abonnement, begivenhedsdetaljer og andre filtre mangler. Slette-dialog findes kun som skabelonevidens.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-kalender-og-skema">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-dagboeger-og-lektier" data-system="skoleintra" data-status="delvist" data-search="Dagbøger og lektier Dagbog, dato, fag, beskrivelse Vælge dagbog og læse noter Delvist: homework() Vælger første fundne dagbog. Ingen offentlig liste over dagbøger, valg af dagbog eller pagination. Ingen skrivehandling bekræftet for denne konto.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Dagbøger og lektier</h3><span class="card-preview">Dagbog, dato, fag, beskrivelse</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Dagbog, dato, fag, beskrivelse</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Vælge dagbog og læse noter</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>homework()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Vælger første fundne dagbog. Ingen offentlig liste over dagbøger, valg af dagbog eller pagination. Ingen skrivehandling bekræftet for denne konto.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-dagboeger-og-lektier">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-ugeplaner" data-system="skoleintra" data-status="delvist" data-search="Ugeplaner Titel, uge/år, URL, ny-markering; planindhold Liste og åbne en plan Delvist: weekly_plans(), weekly_plan(week, year) Detaljemetoden bruger en bestemt sfo-rute; indhold er dict eller rå HTML. Ingen normaliseret dags-/fagstruktur. Aktuel liste er tom.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Ugeplaner</h3><span class="card-preview">Titel, uge/år, URL, ny-markering; planindhold</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Titel, uge/år, URL, ny-markering; planindhold</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Liste og åbne en plan</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>weekly_plans()</code>, <code>weekly_plan(week, year)</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Detaljemetoden bruger en bestemt <code>sfo</code>-rute; indhold er dict eller rå HTML. Ingen normaliseret dags-/fagstruktur. Aktuel liste er tom.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-ugeplaner">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-blanketter" data-system="skoleintra" data-status="mangler" data-search="Blanketter Navn, oprettet af, type, status, URL, deadline, sorteringsdato, evt. resultatlink Åbne/lukkede lister. Lukkede poster viser bl.a. booket samtaletid og svarstatus Mangler Liste og status er et oplagt første trin. Samtalebooking og spørgeskemabesvarelse er særskilte, endnu uundersøgte skriveforløb.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Blanketter</h3><span class="card-preview">Navn, oprettet af, type, status, URL, deadline, sorteringsdato, evt. resultatlink</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Navn, oprettet af, type, status, URL, deadline, sorteringsdato, evt. resultatlink</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Åbne/lukkede lister. Lukkede poster viser bl.a. booket samtaletid og svarstatus</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Liste og status er et oplagt første trin. Samtalebooking og spørgeskemabesvarelse er særskilte, endnu uundersøgte skriveforløb.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-blanketter">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-laesekontrakter" data-system="skoleintra" data-status="bygget" data-search="Læsekontrakter Kontrakt, kategori, periode, mål, fremskridt, aktiv/låst, minutter/sider; bogtitel/forfatter; enkeltregistrering og ID Tilføj læsning på eksisterende/ny bog, rediger mængde, slet registrering Bygget for de observerede forældrefunktioner: reading_contracts(), reading_contract_books(), reading_contract_entries(), add_reading_contract_entry(), update_reading_contract_entry(), delete_reading_contract_entry() Ingen kendte huller i dækningen af det undersøgte forældre-UI. Genvalideret 3. oktober: kontraktopsætning er utilgængelig for denne konto, og registrerings-/redigeringsformularerne har intet datovalg. Enheden bestemmes af kontrakten. Disse begrænsninger regnes ikke som manglende biblioteksfunktioner.">
+  <summary><div class="card-heading"><span class="status bygget">Bygget</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Læsekontrakter</h3><span class="card-preview">Kontrakt, kategori, periode, mål, fremskridt, aktiv/låst, minutter/sider; bogtitel/forfatter; enkeltregistrering og ID</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Kontrakt, kategori, periode, mål, fremskridt, aktiv/låst, minutter/sider; bogtitel/forfatter; enkeltregistrering og ID</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Tilføj læsning på eksisterende/ny bog, rediger mængde, slet registrering</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Bygget</strong> for de observerede forældrefunktioner: <code>reading_contracts()</code>, <code>reading_contract_books()</code>, <code>reading_contract_entries()</code>, <code>add_reading_contract_entry()</code>, <code>update_reading_contract_entry()</code>, <code>delete_reading_contract_entry()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd><strong>Ingen kendte huller i dækningen af det undersøgte forældre-UI.</strong> Genvalideret 3. oktober: kontraktopsætning er utilgængelig for denne konto, og registrerings-/redigeringsformularerne har intet datovalg. Enheden bestemmes af kontrakten. Disse begrænsninger regnes ikke som manglende biblioteksfunktioner.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-laesekontrakter">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-elev-og-foraeldrekontakter" data-system="skoleintra" data-status="bygget" data-search="Elev- og forældrekontakter Elev-ID fra kortets URL, fuldt navn, fødselsdato med årstal, elevfoto og kontakttelefon(er). Klasselister giver også elevadresse og felter til elevmobil/e-mail. Forældre/kontaktpersoner: navn, relation på elevkortet, adresse, hjemme-/mobil-/arbejdstelefon, e-mail og separat profilfotooversigt. Der er ikke observeret fødselsdatoer for forældre. Vælge elev, forrige/næste, fotovisning; generere og udskrive kontakt-, fødselsdags-, e-mail- og fotolister. JPEG-download bekræftet for både elev og forælder med den normale session. Bygget læsning: contacts() giver et let indeks; contacts(detailed=True) og contact(student_id) giver fulde elevmodeller med parents, parents_by_name og parent(name). Fødselsdato er date; billeder returneres som URL med markering af kendte standardikoner. Kort suppleres med fem rapporttyper; udfyldte kortfelter har forrang, og contact_info.sources angiver kilden. Rapporterne mangler person-ID’er, så navnesammenfald eller uventet klasse giver ParseError. Billedbytes downloades ikke automatisk.">
+  <summary><div class="card-heading"><span class="status bygget">Bygget</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Elev- og forældrekontakter</h3><span class="card-preview">Elev-ID fra kortets URL, fuldt navn, fødselsdato med årstal, elevfoto og kontakttelefon(er). Klasselister giver også elevadresse og felter til elevmobil/e-mail. Forældre/kontaktpersoner: navn, relation på elevkortet, adresse, hjemme-/mobil-/arbejdstelefon, e-mail og separat profilfotooversigt. Der er ikke observeret fødselsdatoer for forældre.</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Elev-ID fra kortets URL, fuldt navn, fødselsdato med årstal, elevfoto og kontakttelefon(er). Klasselister giver også elevadresse og felter til elevmobil/e-mail. Forældre/kontaktpersoner: navn, relation på elevkortet, adresse, hjemme-/mobil-/arbejdstelefon, e-mail og separat profilfotooversigt. Der er ikke observeret fødselsdatoer for forældre.</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Vælge elev, forrige/næste, fotovisning; generere og udskrive kontakt-, fødselsdags-, e-mail- og fotolister. JPEG-download bekræftet for både elev og forælder med den normale session.</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Bygget</strong> læsning: <code>contacts()</code> giver et let indeks; <code>contacts(detailed=True)</code> og <code>contact(student_id)</code> giver fulde elevmodeller med <code>parents</code>, <code>parents_by_name</code> og <code>parent(name)</code>.</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Fødselsdato er <code>date</code>; billeder returneres som URL med markering af kendte standardikoner. Kort suppleres med fem rapporttyper; udfyldte kortfelter har forrang, og <code>contact_info.sources</code> angiver kilden. Rapporterne mangler person-ID’er, så navnesammenfald eller uventet klasse giver <code>ParseError</code>. Billedbytes downloades ikke automatisk.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-elev-og-foraeldrekontakter">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-andre-kontaktoversigter" data-system="skoleintra" data-status="delvist" data-search="Andre kontaktoversigter Skolen: navn, adresse, e-mail, telefon, webadresse og grupperede kontaktpersoner. Personale: navn, stilling, foto samt e-mail og telefoner, når oplyst. Kontaktforældre: klasse og navn. Forældreråd: tom liste for denne klasse. Generator: ti listetyper, klasse/hold/SFO, kønsfilter, sortering og medtag eksterne elever. Vælge individuel medarbejder eller alle personalekort; beskedknap på personalekort; generere/udskrive lister og hente fotos. Otte rapporttyper er afprøvet; knappen til besked er ikke aktiveret. Delvist: school_contacts(), staff_contacts() og contact_parents() giver separate skole-, personale- og klasserepræsentantmodeller. Forældreråd og en generel rapport-/udskrifts-API mangler. Skolepersonale-ID er kun udfyldt ved entydigt match med dropdownens fulde navn; forkortede navne matches ikke på gæt. Fødselsdatoer for personale er ikke observeret.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Andre kontaktoversigter</h3><span class="card-preview">Skolen: navn, adresse, e-mail, telefon, webadresse og grupperede kontaktpersoner. Personale: navn, stilling, foto samt e-mail og telefoner, når oplyst. Kontaktforældre: klasse og navn. Forældreråd: tom liste for denne klasse. Generator: ti listetyper, klasse/hold/SFO, kønsfilter, sortering og medtag eksterne elever.</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Skolen: navn, adresse, e-mail, telefon, webadresse og grupperede kontaktpersoner. Personale: navn, stilling, foto samt e-mail og telefoner, når oplyst. Kontaktforældre: klasse og navn. Forældreråd: tom liste for denne klasse. Generator: ti listetyper, klasse/hold/SFO, kønsfilter, sortering og medtag eksterne elever.</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Vælge individuel medarbejder eller alle personalekort; beskedknap på personalekort; generere/udskrive lister og hente fotos. Otte rapporttyper er afprøvet; knappen til besked er ikke aktiveret.</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>school_contacts()</code>, <code>staff_contacts()</code> og <code>contact_parents()</code> giver separate skole-, personale- og klasserepræsentantmodeller.</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Forældreråd og en generel rapport-/udskrifts-API mangler. Skolepersonale-ID er kun udfyldt ved entydigt match med dropdownens fulde navn; forkortede navne matches ikke på gæt. Fødselsdatoer for personale er ikke observeret.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-andre-kontaktoversigter">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-links" data-system="skoleintra" data-status="mangler" data-search="Links Eksterne henvisninger Åbne eksternt link Mangler Enkel liste med titel, URL og evt. kategori. Eksterne destinationer er ikke åbnet.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Links</h3><span class="card-preview">Eksterne henvisninger</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Eksterne henvisninger</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Åbne eksternt link</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Enkel liste med titel, URL og evt. kategori. Eksterne destinationer er ikke åbnet.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-links">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-dokumenter-fra-skolen" data-system="skoleintra" data-status="delvist" data-search="Dokumenter fra skolen ID, navn, URL, dato, kategori og ny-markering Åbne/hente dokument og navigere i mapper Delvist: documents() Kun øverste skoleliste; mappevalg og en offentlig downloadfunktion mangler. URL&#x27;er returneres.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Dokumenter fra skolen</h3><span class="card-preview">ID, navn, URL, dato, kategori og ny-markering</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>ID, navn, URL, dato, kategori og ny-markering</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Åbne/hente dokument og navigere i mapper</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>documents()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Kun øverste skoleliste; mappevalg og en offentlig downloadfunktion mangler. URL&#x27;er returneres.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-dokumenter-fra-skolen">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-klassedokumenter" data-system="skoleintra" data-status="mangler" data-search="Klassedokumenter Filer og mapper; samme grunddata som skoledokumenter Upload, opret/omdøb/slet mappe, rediger egenskaber og slet dokument findes i UI/formularer Mangler offentlig adgang Parseren kan læse klasselisten, men documents() henter den ikke. Mappe- og filhandlinger er ikke implementeret.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Klassedokumenter</h3><span class="card-preview">Filer og mapper; samme grunddata som skoledokumenter</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Filer og mapper; samme grunddata som skoledokumenter</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Upload, opret/omdøb/slet mappe, rediger egenskaber og slet dokument findes i UI/formularer</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong> offentlig adgang</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Parseren kan læse klasselisten, men <code>documents()</code> henter den ikke. Mappe- og filhandlinger er ikke implementeret.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-klassedokumenter">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-skolens-fotoalbum" data-system="skoleintra" data-status="delvist" data-search="Skolens fotoalbum Album-ID, titel, beskrivelse, ophav, cover, ny-markering; foto-URL og billedtekst Åbne album, kategorifilter, Vis flere; opret/rediger/slet album findes i UI Delvist: albums(), album_photos() Pagination og kategorier mangler. photo_count er en placeholder, og Photo.id er en lokal rækkefølge, ikke et stabilt server-ID. Upload/redigering/sletning mangler.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Skolens fotoalbum</h3><span class="card-preview">Album-ID, titel, beskrivelse, ophav, cover, ny-markering; foto-URL og billedtekst</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Album-ID, titel, beskrivelse, ophav, cover, ny-markering; foto-URL og billedtekst</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Åbne album, kategorifilter, Vis flere; opret/rediger/slet album findes i UI</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>albums()</code>, <code>album_photos()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Pagination og kategorier mangler. <code>photo_count</code> er en placeholder, og <code>Photo.id</code> er en lokal rækkefølge, ikke et stabilt server-ID. Upload/redigering/sletning mangler.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-skolens-fotoalbum">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-andre-billeder" data-system="skoleintra" data-status="mangler" data-search="Andre billeder Mapper og billeder i særskilt billedarkiv Vælg/opret/omdøb/slet mappe, upload foto Mangler Eget modul; må ikke forveksles med fotoalbum eller beskedarkivet.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Andre billeder</h3><span class="card-preview">Mapper og billeder i særskilt billedarkiv</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Mapper og billeder i særskilt billedarkiv</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Vælg/opret/omdøb/slet mappe, upload foto</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Eget modul; må ikke forveksles med fotoalbum eller beskedarkivet.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-andre-billeder">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="skoleintra-elevplaner-og-aarsplaner" data-system="skoleintra" data-status="mangler" data-search="Elevplaner og årsplaner Årsplantitel, målgruppe, periode, oprettet-dato, URL og ny-markering Liste og åbne plan Mangler Årsplanlisten kan allerede læses fra HTML. Elevplanlisten er tom for denne konto; dens detaljer og eventuelle kvitteringshandlinger er uafklarede.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Elevplaner og årsplaner</h3><span class="card-preview">Årsplantitel, målgruppe, periode, oprettet-dato, URL og ny-markering</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Datapunkter</dt><dd>Årsplantitel, målgruppe, periode, oprettet-dato, URL og ny-markering</dd></div>
+    <div class="fact"><dt>Handlinger i interfacet</dt><dd>Liste og åbne plan</dd></div><div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Årsplanlisten kan allerede læses fra HTML. Elevplanlisten er tom for denne konto; dens detaljer og eventuelle kvitteringshandlinger er uafklarede.</dd></div>
+  </dl><a class="permalink" href="#skoleintra-elevplaner-og-aarsplaner">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details></div></section>
+      <section class="system-section" id="sfo" data-nav-section><div class="section-heading"><div><p class="section-overline">EN SEPARAT APPLIKATION BAG SSO</p><h2>SFO &amp; Tabulex<span class="section-number" data-count-for="sfo">12</span></h2></div></div><div class="section-description"><p>SFO er en separat applikation bag SSO. En funktion i SkoleIntra og en funktion med samme navn i Tabulex kan have forskellige data, status og rettigheder. Eksempelvis er <strong>SFO-sygemelding ikke det samme som skolefravær</strong>, og SFO-beskeder er ikke skolens indbakke.</p></div><div class="card-grid"><details class="feature" id="sfo-sfo-forside-fra-infoweb" data-system="sfo" data-status="bygget" data-search="SFO-forside fra Infoweb Opslagstavle, ugeplan, nyheder, genveje og link til Tabulex Bygget læsning: sfo() → SfoInfo Sektionerne er primært tekst; ingen skrivefunktioner.">
+  <summary><div class="card-heading"><span class="status bygget">Bygget</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>SFO-forside fra Infoweb</h3><span class="card-preview">Opslagstavle, ugeplan, nyheder, genveje og link til Tabulex</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Opslagstavle, ugeplan, nyheder, genveje og link til Tabulex</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Bygget</strong> læsning: <code>sfo()</code> → <code>SfoInfo</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Sektionerne er primært tekst; ingen skrivefunktioner.</dd></div>
+  </dl><a class="permalink" href="#sfo-sfo-forside-fra-infoweb">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-oversigt-og-status" data-system="sfo" data-status="bygget" data-search="Oversigt og status Aktuel status, opslag, ugeagenda, fødselsdage, gallerihenvisninger, navigation Bygget læsning: tabulex.overview(), dashboard(), status(), news(), birthdays(), agenda(), navigation() news() og gallerihenvisninger kommer fra dashboardet; de er ikke komplette arkiver.">
+  <summary><div class="card-heading"><span class="status bygget">Bygget</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Oversigt og status</h3><span class="card-preview">Aktuel status, opslag, ugeagenda, fødselsdage, gallerihenvisninger, navigation</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Aktuel status, opslag, ugeagenda, fødselsdage, gallerihenvisninger, navigation</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Bygget</strong> læsning: <code>tabulex.overview()</code>, <code>dashboard()</code>, <code>status()</code>, <code>news()</code>, <code>birthdays()</code>, <code>agenda()</code>, <code>navigation()</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd><code>news()</code> og gallerihenvisninger kommer fra dashboardet; de er ikke komplette arkiver.</dd></div>
+  </dl><a class="permalink" href="#sfo-oversigt-og-status">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-aftaler" data-system="sfo" data-status="bygget" data-search="Aftaler Dato/tid, type, afhentning, beskrivelse, sluttid/-dato, gentagelse, ugedage, ferieundtagelse, transport, ejer Bygget: appointments(), appointment(), appointment_types(), create_appointment(), update_appointment(), delete_appointment() på tabulex Historiske aftaler er en separat UI-formular. Skrivekald returnerer HTTP-respons, ikke samme omfattende efterkontrol som læseregistreringer.">
+  <summary><div class="card-heading"><span class="status bygget">Bygget</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Aftaler</h3><span class="card-preview">Dato/tid, type, afhentning, beskrivelse, sluttid/-dato, gentagelse, ugedage, ferieundtagelse, transport, ejer</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Dato/tid, type, afhentning, beskrivelse, sluttid/-dato, gentagelse, ugedage, ferieundtagelse, transport, ejer</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Bygget:</strong> <code>appointments()</code>, <code>appointment()</code>, <code>appointment_types()</code>, <code>create_appointment()</code>, <code>update_appointment()</code>, <code>delete_appointment()</code> på <code>tabulex</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Historiske aftaler er en separat UI-formular. Skrivekald returnerer HTTP-respons, ikke samme omfattende efterkontrol som læseregistreringer.</dd></div>
+  </dl><a class="permalink" href="#sfo-aftaler">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-sygemelding" data-system="sfo" data-status="opdagelse" data-search="Sygemelding UI tilbyder syg i dag eller i morgen Kun opdagelse: capabilities().can_report_sick Ingen offentlig metode til at melde syg eller ophæve en sygemelding.">
+  <summary><div class="card-heading"><span class="status opdagelse">Kun opdagelse</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Sygemelding</h3><span class="card-preview">UI tilbyder syg i dag eller i morgen</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>UI tilbyder syg i dag eller i morgen</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Kun opdagelse:</strong> <code>capabilities().can_report_sick</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Ingen offentlig metode til at melde syg eller ophæve en sygemelding.</dd></div>
+  </dl><a class="permalink" href="#sfo-sygemelding">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-fri-og-ferie" data-system="sfo" data-status="delvist" data-search="Fri og ferie Ferieperioder, dage, fremmøde, tidsrum, fællespasning; UI har fri og tilbagevendende fri Delvist: holiday_periods() og capabilities().can_create_day_off Ingen metode til at gemme feriesvar, oprette fridag eller gentagen fri.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Fri og ferie</h3><span class="card-preview">Ferieperioder, dage, fremmøde, tidsrum, fællespasning; UI har fri og tilbagevendende fri</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Ferieperioder, dage, fremmøde, tidsrum, fællespasning; UI har fri og tilbagevendende fri</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>holiday_periods()</code> og <code>capabilities().can_create_day_off</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Ingen metode til at gemme feriesvar, oprette fridag eller gentagen fri.</dd></div>
+  </dl><a class="permalink" href="#sfo-fri-og-ferie">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-aktuel-boerneaktivitet" data-system="sfo" data-status="opdagelse" data-search="Aktuel børneaktivitet Formular til at opdatere barnets aktivitet/status Kun opdagelse: capabilities().can_update_activity Ingen skrivehandling. Konkrete mulige statusskift og serverregler skal undersøges.">
+  <summary><div class="card-heading"><span class="status opdagelse">Kun opdagelse</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Aktuel børneaktivitet</h3><span class="card-preview">Formular til at opdatere barnets aktivitet/status</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Formular til at opdatere barnets aktivitet/status</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Kun opdagelse:</strong> <code>capabilities().can_update_activity</code></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Ingen skrivehandling. Konkrete mulige statusskift og serverregler skal undersøges.</dd></div>
+  </dl><a class="permalink" href="#sfo-aktuel-boerneaktivitet">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-stamkort" data-system="sfo" data-status="delvist" data-search="Stamkort Kontaktfelter, synlighed, tilladelser og foto; Gem/upload findes i UI Delvist: identity_preferences() læser tre synlighedsflag Ingen komplet stamkortmodel, tilladelsesliste eller redigering/upload.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Stamkort</h3><span class="card-preview">Kontaktfelter, synlighed, tilladelser og foto; Gem/upload findes i UI</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Kontaktfelter, synlighed, tilladelser og foto; Gem/upload findes i UI</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>identity_preferences()</code> læser tre synlighedsflag</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Ingen komplet stamkortmodel, tilladelsesliste eller redigering/upload.</dd></div>
+  </dl><a class="permalink" href="#sfo-stamkort">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-opslagstavlens-egen-side" data-system="sfo" data-status="delvist" data-search="Opslagstavlens egen side Selvstændigt menupunkt /guardian/news Delvist: dashboard-opslag kan læses Selvstændig liste, historik og detaljehandlinger er ikke undersøgt.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Opslagstavlens egen side</h3><span class="card-preview">Selvstændigt menupunkt /guardian/news</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Selvstændigt menupunkt <code>/guardian/news</code></dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> dashboard-opslag kan læses</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Selvstændig liste, historik og detaljehandlinger er ikke undersøgt.</dd></div>
+  </dl><a class="permalink" href="#sfo-opslagstavlens-egen-side">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-sfo-beskeder" data-system="sfo" data-status="mangler" data-search="SFO-beskeder Selvstændigt menupunkt med tæller Mangler Data og skrivehandlinger ikke undersøgt; ingen genbrug af skolens besked-ID&#x27;er.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>SFO-beskeder</h3><span class="card-preview">Selvstændigt menupunkt med tæller</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>Selvstændigt menupunkt med tæller</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Data og skrivehandlinger ikke undersøgt; ingen genbrug af skolens besked-ID&#x27;er.</dd></div>
+  </dl><a class="permalink" href="#sfo-sfo-beskeder">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-boerneaktiviteter-og-familiearrangementer" data-system="sfo" data-status="mangler" data-search="Børneaktiviteter og familiearrangementer To særskilte menupunkter Mangler Kun navigation observeret. Eventuel tilmelding/framelding er uafklaret, ikke bekræftet.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Børneaktiviteter og familiearrangementer</h3><span class="card-preview">To særskilte menupunkter</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>To særskilte menupunkter</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong></dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Kun navigation observeret. Eventuel tilmelding/framelding er <strong>uafklaret</strong>, ikke bekræftet.</dd></div>
+  </dl><a class="permalink" href="#sfo-boerneaktiviteter-og-familiearrangementer">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-kontakter-legelister-og-personale" data-system="sfo" data-status="delvist" data-search="Kontakter, legelister og personale SFO-kontakter viser navn, relation, adresse, telefon og flagene Må hente/Webadgang/Værge. Kontaktformularen har også e-mail og flere telefontyper samt opret/rediger/slet. Personaleoversigten viser navn, stilling og billedfelter. Legelister har gruppe- og børnevalg. Delvist: tabulex.contacts() → TabulexContact; tabulex.staff_contacts() → StaffContact. SFO-data holdes adskilt fra skolens elev-/forældrekontakter. Kontaktændringer og legelistens dynamiske resultat mangler. Kontaktflag er bool eller None, når ukendt. De 15 aktuelle personalebilleder er standardikoner. Ingen CPR-/loginfelter læses fra formularerne.">
+  <summary><div class="card-heading"><span class="status delvist">Delvist</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Kontakter, legelister og personale</h3><span class="card-preview">SFO-kontakter viser navn, relation, adresse, telefon og flagene Må hente/Webadgang/Værge. Kontaktformularen har også e-mail og flere telefontyper samt opret/rediger/slet. Personaleoversigten viser navn, stilling og billedfelter. Legelister har gruppe- og børnevalg.</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>SFO-kontakter viser navn, relation, adresse, telefon og flagene Må hente/Webadgang/Værge. Kontaktformularen har også e-mail og flere telefontyper samt opret/rediger/slet. Personaleoversigten viser navn, stilling og billedfelter. Legelister har gruppe- og børnevalg.</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Delvist:</strong> <code>tabulex.contacts()</code> → <code>TabulexContact</code>; <code>tabulex.staff_contacts()</code> → <code>StaffContact</code>. SFO-data holdes adskilt fra skolens elev-/forældrekontakter.</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Kontaktændringer og legelistens dynamiske resultat mangler. Kontaktflag er <code>bool</code> eller <code>None</code>, når ukendt. De 15 aktuelle personalebilleder er standardikoner. Ingen CPR-/loginfelter læses fra formularerne.</dd></div>
+  </dl><a class="permalink" href="#sfo-kontakter-legelister-og-personale">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details>
+<details class="feature" id="sfo-billeder-og-tjenester" data-system="sfo" data-status="mangler" data-search="Billeder og tjenester To særskilte menupunkter; dashboard har galleritekster Mangler egentlige modeller/API Indhold og handlinger på undersiderne er ikke undersøgt.">
+  <summary><div class="card-heading"><span class="status mangler">Mangler</span><span class="expand" aria-hidden="true">+</span></div>
+    <h3>Billeder og tjenester</h3><span class="card-preview">To særskilte menupunkter; dashboard har galleritekster</span><span class="summary-label" aria-hidden="true">Se data og handlinger <span>↗</span></span></summary>
+  <div class="card-details"><dl>
+    <div class="fact"><dt>Data og observerede handlinger</dt><dd>To særskilte menupunkter; dashboard har galleritekster</dd></div>
+    <div class="fact"><dt>Biblioteket nu</dt><dd><strong>Mangler</strong> egentlige modeller/API</dd></div>
+    <div class="gap"><dt>Det væsentlige hul</dt><dd>Indhold og handlinger på undersiderne er ikke undersøgt.</dd></div>
+  </dl><a class="permalink" href="#sfo-billeder-og-tjenester">Link til dette område <span aria-hidden="true">↗</span></a></div>
+</details></div></section>
+    </div>
+    <section class="long-section" id="naeste-skridt" data-nav-section><p class="section-kicker">Fra overblik til prioritering</p><h2>Hvad skal være det næste?</h2><div class="proposal-intro"><p>Dette er min vurdering af nytte og omfang ud fra kortlægningen, ikke en besluttet roadmap. Omfang er relativt og ikke et tidsestimat.</p>
+<p>Hvis formålet er <strong>mere nyttigt indhold i Mutti</strong>, ville jeg starte med <strong>opslag/påmindelser</strong>, derefter lukke hullerne i dokumentlæsning. Hvis formålet er <strong>flere daglige handlinger</strong>, ville jeg vælge <strong>skolefravær</strong> eller <strong>SFO-sygemelding/ferie</strong> som en selvstændig næste opgave.</p></div><div class="proposals"><article class="proposal"><span class="proposal-number">01</span><div><h3><strong>Forsideopslag og påmindelser</strong></h3><p>Nye opslag og påmindelser bliver tilgængelige for en konsument som Mutti</p><dl><dt>Første leverance</dt><dd>Læs opslag + notifikationer med ID, type, mål, dato, læsestatus og pagination</dd><dt>Omfang og usikkerhed</dt><dd>Mellem. HTML og konfiguration er fundet; afklar særskilt læst/set og opslagets påmindelsesvalg.</dd></dl></div></article>
+<article class="proposal"><span class="proposal-number">02</span><div><h3><strong>Fravær og fraværsstatistik</strong></h3><p>Et hyppigt forældrebehov får en direkte API</p><dl><dt>Første leverance</dt><dd>Start med data/statistik; tilføj derefter én afgrænset fraværsregistrering</dd><dt>Omfang og usikkerhed</dt><dd>Mellem–stort. Dynamisk UI; modtagere, låste dage og efterkontrol skal forstås.</dd></dl></div></article>
+<article class="proposal"><span class="proposal-number">03</span><div><h3><strong>Bedre læsedækning</strong></h3><p>Mere komplette data uden nye skriveflows</p><dl><dt>Første leverance</dt><dd>Klassens dokumenter, mapper og album-pagination; kontaktkort er nu implementeret</dd><dt>Omfang og usikkerhed</dt><dd>Lille–mellem pr. del. Kendte ruter og eksisterende parsere kan delvist genbruges.</dd></dl></div></article>
+<article class="proposal"><span class="proposal-number">04</span><div><h3><strong>SFO-sygemelding og feriesvar</strong></h3><p>Udnytter synlige handlinger tæt på det eksisterende Tabulex-API</p><dl><dt>Første leverance</dt><dd>Enkelt sygemeldingsflow eller gem ét feriesvar med verificeret efterkontrol</dd><dt>Omfang og usikkerhed</dt><dd>Mellem. Formularer er til stede; forstå dato, gentagelser og mulighed for at fortryde før live test.</dd></dl></div></article>
+<article class="proposal"><span class="proposal-number">05</span><div><h3><strong>Blanketter og skole-hjem-samtaler</strong></h3><p>Overblik over deadlines, svarstatus og bookede tider</p><dl><dt>Første leverance</dt><dd>Først åbne/lukkede lister med typede poster; booking og svar som separate trin</dd><dt>Omfang og usikkerhed</dt><dd>Liste: lille–mellem. Skrivning: større og uafklaret; nogle typer går videre til Infoweb.</dd></dl></div></article>
+<article class="proposal"><span class="proposal-number">06</span><div><h3><strong>Årsplaner</strong></h3><p>Nyttigt indhold fra et helt udækket hovedområde</p><dl><dt>Første leverance</dt><dd>Liste og derefter detaljer, uden utilsigtet kvittering/læsemarkering</dd><dt>Omfang og usikkerhed</dt><dd>Lille–mellem. Der er konkrete årsplaner at undersøge.</dd></dl></div></article>
+<article class="proposal"><span class="proposal-number">07</span><div><h3><strong>Sende og besvare beskeder</strong></h3><p>Gør beskedstøtten mere komplet</p><dl><dt>Første leverance</dt><dd>Én besked til validerede modtagere, derefter svar/videresend og bilag</dd><dt>Omfang og usikkerhed</dt><dd>Større. Modtagervalg, kladder, bilag og håndtering af usikker afsendelse skal bygges ordentligt.</dd></dl></div></article></div></section>
+    <section class="long-section" id="forbehold" data-nav-section><p class="section-kicker">Sådan skal kortet forstås</p><h2>Forbehold &amp; metode</h2><div class="notes"><details class="note" id="saadan-laeses-kortet"><summary>Hvad betyder statusserne?</summary><div class="prose"><ul>
+<li><strong>Bygget:</strong> Der findes en offentlig metode til den nævnte funktion. Det betyder ikke, at alle skolers varianter er dækket.</li>
+<li><strong>Delvist:</strong> API&#x27;et findes, men mangler fx detaljer, andre mapper, filtrering eller pagination.</li>
+<li><strong>Mangler:</strong> Ingen offentlig metode i det gennemgåede bibliotek.</li>
+<li><strong>Uafklaret i UI:</strong> Funktionen er kun antydet af navigation, komponentdata eller skabeloner. Det er ikke bekræftet, at kontoen kan udføre handlingen.</li>
+</ul>
+<p>Metoder uden præfiks tilhører <code>Child</code>. <code>tabulex.</code> betegner <code>child.tabulex</code>. Tabellerne adskiller eksisterende kode fra <strong>observerede muligheder i UI&#x27;et</strong>. Knapper, dialogtekster og formularer dokumenterer ikke i sig selv en fungerende skriveoperation.</p>
+<p>Der er kun hentet sider og data; ingen oprettelses-, redigerings-, slette-, tilmeldings- eller læsestatuskald er sendt. Login og SFO&#x27;s SSO krævede autentifikationsformularer. Kontaktlistens rapportformular er indsendt for at generere læsevisninger; disse POST-kald er ikke redigering af kontakter. JavaScript er ikke kørt, og ulæste beskeder, årsplaners detaljer og andre elementer er ikke åbnet for at teste mulige læsemarkeringer. Eventuelle automatiske servereffekter ved åbning af listesider er ikke særskilt kontrolleret.</p><p><strong>Kun opdagelse:</strong> Biblioteket kan registrere, at en handling tilbydes, men kan ikke udføre den. Denne status er særskilt fra usikkerhed om selve UI'et.</p></div></details><details class="note"><summary>Vigtige nuancer ved eksisterende funktioner</summary><div class="prose"><ol>
+<li><strong>Arkivering flytter som standard.</strong> <code>archive_message(id)</code> verificerer en arkivkopi og sletter derefter indbakkeoriginalen. <code>mode=&quot;copy&quot;</code> bevarer originalen. Arkiv-ID og indbakke-ID er forskellige. Flytningen er ikke atomisk; fejl kan efterlade en kopi eller et usikkert resultat.</li>
+<li><strong>Læst og ulæst findes nu på den enkelte besked.</strong> <code>MessageDetail.is_unread</code> stammer fra et boolesk <code>ShowUnreadIndication</code> i det friske lookup. Manglende/ukendt flag er <code>None</code>. Statuskald invaliderer barnets beskedcache. Trådens status er ikke det samme som alle enkeltbeskeders status.</li>
+<li><strong>Arkivdatoer har højst dagspræcision.</strong> Arkivets viste <code>00:00</code> bruges ikke som et ægte tidspunkt. Det er fortsat uafklaret, om åbning af en ulæst arkivkopi markerer den læst på serveren.</li>
+<li><strong>Læsekontrakter dækker de observerede forældrefunktioner.</strong> En bog identificeres ved præcis titel + forfatter og har ikke et separat ID i den nuværende kontrakt; enkeltlæsninger har server-ID. Minutter eller sider vælges af kontrakten, ikke af metodekaldet. Opdatering ændrer mængden; nul er ikke sletning. Opsætning af kontrakten og baguddatering er ikke fundet i forældre-UI&#x27;et og tæller ikke som huller i bibliotekets dækning.</li>
+<li><strong>Datoer er ikke ensartet normaliseret endnu.</strong> Instansen bruger <code>Europe/Copenhagen</code> som standard og kan konfigureres. Beskeder har normaliserede felter med præcision; mange andre modeller beholder rå datotekster. Kalender/skema og lektiedatoer er timezone-aware, mens dato- og klokkeslætsværdier uden et fuldt tidspunkt bevarer deres betydning.</li>
+<li><strong>Lister kan være udsnit.</strong> Især ulæste beskeder, kontaktbog, album, dokumenter og første dagbog bør ikke uden videre behandles som en komplet eksport. Arkivet har eksplicit pagination; indbakken har pagination via seneste besked-ID.</li>
+<li><strong>Kontaktkort og klasselister supplerer hinanden.</strong> Genererede kontakt- og e-maillister indeholder oplysninger, der er tomme på de to undersøgte elevkort for de samme forældre. Brug de normale visninger og bevar kilde/proveniens; årsagen til forskellen er ikke fastslået. Et tomt felt kan ikke alene klassificeres som skjult, ikke oplyst eller ikke understøttet.</li>
+<li><strong>Fødselsdato er en dato, og et billedfelt er ikke altid et foto.</strong> Elevens fødselsdato indeholder årstal og bør modelleres som <code>date</code>, uden timezone-konvertering. Forældres og personales billedoversigter blander personlige fotos med standardikoner. Kun billeder hentet gennem den normale session er verificeret; anonyme billed-URL&#x27;er og deres levetid er ikke undersøgt.</li>
+</ol></div></details><details class="note"><summary>Observationer og begrænsninger</summary><div class="prose"><ul>
+<li>Aktuelt ses <strong>ingen åbne blanketter</strong>, men <strong>fem lukkede</strong>. Typerne omfatter <strong>Samtale</strong> og <strong>Spørgeskemaundersøgelse</strong>. Samtaleposter har en booket tid i statusfeltet. Dermed er “Blanketter” bredere end traditionelle dokumentformularer.</li>
+<li><strong>Fem årsplaner</strong> er listet; <strong>ingen elevplaner</strong> er listet for kontoen. Årsplanernes detaljer er ikke åbnet. Aktuel ugeplanliste melder udtrykkeligt, at der ingen ugeplaner er for skoleåret; det er ikke i sig selv en parserfejl.</li>
+<li>Kontaktbog og fotoalbum indeholder konkrete data. Skole- og klassedokumentlisterne kan begge parses; kun skolelisten er forbundet til det offentlige <code>documents()</code>-kald.</li>
+<li><strong>Kontaktdata, 3. oktober:</strong> Klassen har 25 elever i de undersøgte lister: 25 fulde fødselsdatoer, 25 elevfoto-URL&#x27;er og 23 udfyldte elevadresser. Felterne for elevernes egen mobil og e-mail er tomme. Dette beskriver den aktuelle klasse, ikke en garanti for andre skoler.</li>
+<li><strong>Forældredata, 3. oktober:</strong> De 50 kontaktpersonsposter knyttet til klassens elever har 49 e-mailadresser, 48 mobilnumre, 45 adresser og 6 hjemmetelefoner; arbejdstelefon er tom. Tallene er poster, ikke deduplikerede personer. Profilfotooversigten har 6 personlige billeder og 44 standardikoner. Der er hentet ét faktisk forældrefoto som JPEG.</li>
+<li><strong>Andre kontakter, 3. oktober:</strong> Skolens samlede personalevisning har 46 kort med navn/stilling, heraf 15 med e-mail, 13 med personligt foto og to med et telefonfelt. Ét personalefoto er hentet som JPEG. Kontaktforældreoversigten indeholder klasse/navn, mens forældrerådet melder, at ingen medlemmer er fundet for klassen. Listegeneratorens klassekoordinatorrapport har overskriften Kontaktlærere, men tomme værdier i denne klasse.</li>
+<li><strong>Konkrete læseruter:</strong> <code>contacts/students/{id}</code> giver elevkort som HTML-fragment; <code>contacts/students/photoalbum</code> giver elevfotos. <code>contacts/staff/{id}</code> og <code>contacts/staff/contactcards</code> giver personale individuelt/samlet. POST til <code>contacts/studentlist</code> med formularens valgte klasse og listetype returnerer enten en fotovisning eller en redirect til GET <code>contacts/studentlist/list</code> med <code>settings.*</code>-parametre. Ruter og klasseværdier skal opdages fra HTML, ikke konstrueres ud fra navne.</li>
+<li><strong>Læsekontrakter genvalideret 3. oktober:</strong> Alle fem kontrakter har <code>CanUpdateContracts=false</code>. Forældresidens provider har ingen adresser i <code>SaveReadingContractUrl</code>, <code>UpdateReadingContractUrl</code> eller <code>DeleteReadingContractUrl</code>; <code>AddContractDialogSettings</code> er null, og opret-/rediger-kontraktformularerne er ikke med i siden. Kontraktmenuen kræver netop <code>CanUpdateContracts</code>. Tilføj-formularen har mængde og bogvalg, og JavaScript sender kun <code>Author</code>, <code>Title</code> og <code>ReadPagesCount</code> som registreringsdata. Redigering binder kun <code>record.Pages</code>; <code>record.Date</code> vises som tekst. Det bekræfter dækningen af denne kontos UI, ikke en universel begrænsning for alle roller eller en test af udokumenterede serverparametre. Kontrollens fire hentninger var GET; intet blev oprettet, ændret eller slettet.</li>
+<li>Dynamiske fraværs- og blanketdata er undersøgt via <code>data-vue-component-data</code> og sidens tekster. De fire tilknyttede JavaScript-bundles returnerede HTTP 403 ved direkte hentning. Ingen fraværs- eller booking-endpoints er derfor udledt på gæt.</li>
+<li>En almindelig menu-URL til ugeplaner gav 404, mens bibliotekets særlige <code>...{child}item/weeklyplansandhomework/list</code> gav 200. Den skæve rute er en eksisterende installationsdetalje.</li>
+<li>Bibliotekets fejl- og cachehåndtering er ikke ensartet på tværs af ældre læsemetoder. Nogle parsere returnerer tom liste ved manglende markup. Det er værd at forbedre sammen med pagination, så “ingen data” kan skelnes fra “forkert side”.</li>
+<li>Lille versionsafvigelse i den gennemgåede commit: <code>pyproject.toml</code> siger <strong>0.3.1</strong>, mens <code>pyskoleintra.__version__</code> stadig siger <strong>0.3.0</strong>. Kortets basis er committen, ikke runtime-strengen.</li>
+</ul></div></details></div></section>
+    <section class="long-section" id="kilder" data-nav-section><p class="section-kicker">Grundlaget for kortlægningen</p><h2>Kilder &amp; videre brug</h2><div class="prose source-body"><ul>
+<li>Offentlige metoder og valg af ruter: <a href="../src/pyskoleintra/child.py">child.py</a> og <a href="../src/pyskoleintra/tabulex.py">tabulex.py</a>.</li>
+<li>Tilgængelige felter: <a href="../src/pyskoleintra/models.py">models.py</a>. Parserne findes i <a href="../src/pyskoleintra/parsers/">parsers</a>.</li>
+<li>Kontrakter og tidligere verificering: <a href="../README.md">README</a> og <a href="../tests/">tests</a>. Eksisterende tests er ikke en live godkendelse af alle UI-handlinger i dette kort.</li>
+<li>Lokale HTML-svar, komponentdata, formularfelter og hentemanifester ligger i <strong><code>tmp/interface-map/</code></strong>. Materialet indeholder private data, er Git-ignoreret og skal blive lokalt. Kortet gengiver ingen personnavne, beskedtekster, kontaktdetaljer eller credentials.</li>
+<li>Den uddybende kontaktundersøgelses HTML-svar, rapporter, feltoptællinger og tre billedprøver ligger i <strong><code>tmp/contact-investigation/</code></strong>, ligeledes privat og Git-ignoreret. Otte af generatorens ti listetyper er prøvet: fødselsdage, elevfotos, kontaktoplysninger, adresse/telefon, elevers e-mail, forældres e-mail, forældres profilbilleder og klassekoordinatorer. Navne- og afkrydsningslisterne er kun observeret som valg.</li>
+<li>Genvalideringen af læsekontraktens forældre-UI ligger i <strong><code>tmp/reading-ui-validation/</code></strong>: friske svar, indstillinger, JavaScript og kontroller af felter/rettighedsflag. Materialet er privat og Git-ignoreret; ingen formularer blev indsendt.</li>
+</ul>
+<p>Nye skrivefunktioner bør få en separat konkret undersøgelse af input, rettigheder, svar, efterkontrol og mulighed for at rette/fortryde. Kortet angiver særskilt, når funktioner er implementeret efter grundgennemgangen.</p><p>HTML-siden er bygget fra <a href="interface-map.md">den lokale Markdown-kilde</a>. Den indeholder ingen private sidesnapshots og kontakter ikke SkoleIntra.</p></div></section>
+    <footer class="footer"><span>pyskoleintra · Interfacekort · 36 områder</span><a href="#overblik">Til toppen ↑</a></footer>
+  </div></main>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => [...document.querySelectorAll(selector)];
+      const cards = $$('.feature');
+      const search = $('#search'), system = $('#system');
+      const filters = $$('[data-status-filter]');
+      let selectedStatus = 'all';
+      const normalize = (text) => text.toLocaleLowerCase('da').replaceAll('æ','ae').replaceAll('ø','oe').replaceAll('å','aa').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const searchText = new Map(cards.map(card => [card, normalize(card.dataset.search)]));
+
+      function updateExpandLabel() {
+        const visible = cards.filter(card => !card.hidden);
+        $('#expand-all').textContent = visible.length && visible.every(card => card.open) ? 'Skjul alle detaljer' : 'Vis alle detaljer';
+        $('#expand-all').disabled = !visible.length;
+      }
+      function filterCards() {
+        const words = normalize(search.value.trim()).split(/\s+/).filter(Boolean);
+        let visible = 0;
+        const groupCounts = {skoleintra: 0, sfo: 0};
+        cards.forEach(card => {
+          const matches = (system.value === 'all' || system.value === card.dataset.system)
+            && (selectedStatus === 'all' || selectedStatus === card.dataset.status)
+            && words.every(word => searchText.get(card).includes(word));
+          card.hidden = !matches;
+          if (matches) { visible++; groupCounts[card.dataset.system]++; }
+        });
+        for (const [key,count] of Object.entries(groupCounts)) {
+          $('#' + key).hidden = count === 0;
+          $('[data-count-for="' + key + '"]').textContent = count;
+        }
+        $('#results').textContent = 'Viser ' + visible + ' af ' + cards.length + ' områder';
+        $('#empty-state').hidden = visible !== 0;
+        $('#clear-search').hidden = !search.value;
+        $('#reset-filters').hidden = !(search.value || selectedStatus !== 'all' || system.value !== 'all');
+        filters.forEach(button => {
+          const active = button.dataset.statusFilter === selectedStatus;
+          button.classList.toggle('active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+        updateExpandLabel();
+      }
+      function resetFilters() { search.value = ''; system.value = 'all'; selectedStatus = 'all'; filterCards(); }
+      search.addEventListener('input', filterCards);
+      system.addEventListener('change', filterCards);
+      $('#clear-search').addEventListener('click', () => {search.value = ''; filterCards(); search.focus();});
+      $('#reset-filters').addEventListener('click', () => {resetFilters(); search.focus();});
+      $('#reset-empty').addEventListener('click', () => {resetFilters(); search.focus();});
+      filters.forEach(button => button.addEventListener('click', () => {selectedStatus = button.dataset.statusFilter; filterCards();}));
+      $$('[data-filter-value]').forEach(button => button.addEventListener('click', () => {
+        selectedStatus = button.dataset.filterValue; search.value = ''; system.value = 'all'; filterCards();
+        $('#katalog').scrollIntoView({block:'start'}); search.focus({preventScroll:true});
+      }));
+      $('#expand-all').addEventListener('click', () => {
+        const visible = cards.filter(card => !card.hidden);
+        const open = !visible.every(card => card.open);
+        visible.forEach(card => {card.open = open;}); updateExpandLabel();
+      });
+      cards.forEach(card => card.addEventListener('toggle', updateExpandLabel));
+
+      function navigateToHash() {
+        let id;
+        try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }
+        const target = document.getElementById(id);
+        if (!target) return;
+        if (target.matches('.feature')) {
+          resetFilters(); target.open = true;
+        } else if (target.matches('.system-section')) {
+          resetFilters();
+        } else if (target.matches('details')) {
+          target.open = true;
+        }
+        requestAnimationFrame(() => target.scrollIntoView({block:'start'}));
+      }
+      window.addEventListener('hashchange', navigateToHash);
+      // A repeated click on the current hash must also reveal a filtered section.
+      $$('a[href^="#"]').forEach(link => link.addEventListener('click', () => {
+        const target = document.getElementById(link.hash.slice(1));
+        if (target?.matches('.system-section') || target?.matches('.feature')) resetFilters();
+        if (target?.matches('.feature')) target.open = true;
+        if (location.hash === link.hash) requestAnimationFrame(navigateToHash);
+      }));
+      const navLinks = $$('.nav a');
+      const sections = $$('[data-nav-section]');
+      let scheduled = false;
+      function updateNavigation() {
+        scheduled = false;
+        const anchor = window.innerWidth <= 780 ? 260 : 190;
+        let current = sections[0];
+        sections.forEach(section => {if (!section.hidden && section.getBoundingClientRect().top <= anchor) current = section;});
+        navLinks.forEach(link => {
+          const active = link.hash === '#' + current.id;
+          link.classList.toggle('active', active);
+          if (active) link.setAttribute('aria-current', 'location'); else link.removeAttribute('aria-current');
+        });
+      }
+      window.addEventListener('scroll', () => {if (!scheduled) {scheduled = true; requestAnimationFrame(updateNavigation);}}, {passive:true});
+      window.addEventListener('resize', updateNavigation);
+      document.addEventListener('keydown', event => {
+        if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey
+            && !/INPUT|TEXTAREA|SELECT/.test(event.target.tagName) && !event.target.isContentEditable) {
+          event.preventDefault(); search.focus();
+        }
+        if (event.key === 'Escape' && document.activeElement === search) {
+          search.value = ''; filterCards();
+        }
+      });
+      let beforePrint = [];
+      window.addEventListener('beforeprint', () => {
+        beforePrint = $$('details').map(element => [element,element.open]);
+        beforePrint.forEach(([element]) => {element.open = true;});
+      });
+      window.addEventListener('afterprint', () => {beforePrint.forEach(([element,open]) => {element.open = open;});});
+      $('#print-button').addEventListener('click', () => window.print());
+      document.body.classList.add('has-js');
+      filterCards(); navigateToHash(); updateNavigation();
+      document.documentElement.dataset.ready = 'true';
+    })();
+  </script>
+</body>
+</html>

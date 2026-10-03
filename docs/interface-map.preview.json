@@ -1,0 +1,89 @@
+{
+  "verified_on": "2026-10-03",
+  "artifact": "docs/interface-map.html",
+  "build_command": "python3 scripts/build_interface_map.py",
+  "source": "docs/interface-map.md",
+  "template": "docs/interface-map.template.html",
+  "reproducible_build_verified": true,
+  "preview_command": "node tmp/interface-preview/check.cjs",
+  "preview_note": "Local CDP verification script and screenshots are retained in ignored tmp/interface-preview; the script uses a dedicated Chromium endpoint.",
+  "checks_passed": 25,
+  "checks": [
+    "All 36 areas and 7 proposals rendered",
+    "Initial counters and group counts",
+    "No horizontal overflow on desktop",
+    "Status filter excludes built/partial/discovery",
+    "Combined domain and status filtering",
+    "API search finds correct area",
+    "Expand applies to filtered results",
+    "Empty state and disabled expand",
+    "Empty state reset",
+    "Danish transliteration search",
+    "Deep link clears filters and opens specific area",
+    "Deep link survives reload",
+    "Section navigation reveals hidden system",
+    "Slash keyboard shortcut",
+    "No overflow at 390px",
+    "No overflow at 320px",
+    "No overflow at 768px",
+    "No overflow at 1024px",
+    "Mobile deep link is below sticky controls",
+    "Print expands all detailed content",
+    "Print hides filters and navigation",
+    "Print restores disclosure state",
+    "No-JS still contains all readable content",
+    "No JavaScript exceptions",
+    "No external requests"
+  ],
+  "javascript_errors": [],
+  "external_requests": [],
+  "screenshots": {
+    "type": "Actual standalone HTML rendered in Chromium",
+    "content": "The redacted interface map, without live school data or account credentials",
+    "desktop_viewport": "1440x1000",
+    "mobile_viewport": "390x844",
+    "additional_width_checks": [
+      320,
+      768,
+      1024
+    ],
+    "paths": [
+      "tmp/interface-preview/desktop-overview.png",
+      "tmp/interface-preview/desktop-full.png",
+      "tmp/interface-preview/mobile-overview.png",
+      "tmp/interface-preview/mobile-detail.png"
+    ],
+    "visually_inspected": true
+  },
+  "limitations": [
+    "Mobile layout verified using Chromium device emulation, not a physical phone.",
+    "Relative source-code links require the surrounding repository; the map itself is self-contained.",
+    "No live SkoleIntra actions were performed for this HTML preview."
+  ],
+  "sha256": {
+    "docs/interface-map.md": "94c822ed8d6e85da1e3fff8480c2f928e786c13104ab530797753b437869dd5a",
+    "docs/interface-map.template.html": "ae877b7d431877965ef9e65601a76c68555f2b128398c91aaf24a2e295f05f62",
+    "scripts/build_interface_map.py": "357379e407935f1131670fbdab18de0ebf4782c7576c4b36f87291805921a504",
+    "docs/interface-map.html": "c5e1e416e4eaa4d47428118d3905d772c236193f7561d730e6bb1a27c6067777",
+    "tmp/interface-preview/desktop-overview.png": "095450387ac9dcf05da13c8460d58468ce3adc63647049b7d432456b93de933b",
+    "tmp/interface-preview/desktop-full.png": "b695fe6700b7e1d073537df139f5125dfd570e32d195053c044a8820f6b65572",
+    "tmp/interface-preview/mobile-overview.png": "6bb4323d12131f6811d3ac4c73f969d45f0fa77eb8bf432c17228812ff85354f",
+    "tmp/interface-preview/mobile-detail.png": "1160f1f3b0d3bfcef2fd1b1984d8c2e3f948b5a63234e3c31937a692e475f48a"
+  },
+  "content_revision": {
+    "date": "2026-10-04",
+    "change": "Contact API implemented locally; updated student, school and SFO coverage. Page template, CSS and JavaScript unchanged.",
+    "checks": [
+      "Deterministic regeneration",
+      "36 areas preserved",
+      "All area table cells rendered",
+      "Updated contact coverage statuses",
+      "Private contact names and emails excluded from documentation and synthetic tests"
+    ],
+    "browser_evidence_scope": "The 25 browser checks and screenshots above refer to the earlier hashes in sha256. Browser checks were not repeated for this content update.",
+    "sha256": {
+      "docs/interface-map.md": "5dd8a0420dec0b3b68d35d5dc422f4144a7ea12f1d7dd50d883ff30390496c37",
+      "docs/interface-map.html": "e8638fb254b75d81f058262276e20c3945a44018a0559838bcb3f5ae71e9d208"
+    }
+  }
+}

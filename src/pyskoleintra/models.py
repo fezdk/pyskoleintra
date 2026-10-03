@@ -501,12 +501,119 @@ class Document:
 # ---------------------------------------------------------------------------
 
 @dataclass
+class ContactInfo:
+    """Published fields and their sources. Empty does not imply a privacy setting.
+
+    Phone keys include home, mobile, work, work_mobile, contact and contact2.
+    Values retain their formatting and can contain multiple lines.
+    """
+
+    address: str = ""
+    email: str = ""
+    phones: dict[str, str] = field(default_factory=dict)
+    sources: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class ParentContact:
+    """A parent/contact person attached to one student, not a global identity."""
+
+    name: str
+    relationship: str = ""
+    contact_info: ContactInfo = field(default_factory=ContactInfo)
+    photo_url: str = ""
+    photo_is_placeholder: bool | None = None
+
+
+@dataclass
 class StudentContact:
-    """A student contact card."""
+    """Student snapshot; the first three positional fields remain compatible.
+
+    Parents belong to this student. Lookups never perform network requests or
+    merge people across students based on their names.
+    """
 
     name: str
     class_name: str = ""
     photo_url: str = ""
+    id: int | None = None
+    birth_date: date | None = None
+    birth_date_text: str = ""
+    contact_info: ContactInfo = field(default_factory=ContactInfo)
+    parents: list[ParentContact] = field(default_factory=list)
+    photo_is_placeholder: bool | None = None
+    source_url: str = ""
+    details_loaded: bool = False
+
+    @property
+    def parents_by_name(self) -> dict[str, list[ParentContact]]:
+        """Fresh name index; lists preserve namesakes instead of overwriting them."""
+        result: dict[str, list[ParentContact]] = {}
+        for parent in self.parents:
+            result.setdefault(parent.name, []).append(parent)
+        return result
+
+    def parent(self, name: str) -> ParentContact:
+        """Case-insensitive exact name lookup; reject missing/ambiguous names."""
+        matches = [p for p in self.parents if p.name.casefold() == name.strip().casefold()]
+        if not matches:
+            raise KeyError("No parent with that name on this student")
+        if len(matches) != 1:
+            raise ValueError("Ambiguous parent name on this student")
+        return matches[0]
+
+
+@dataclass
+class StaffContact:
+    """A school or SFO staff member; IDs are local to the supplying system."""
+
+    name: str
+    position: str = ""
+    id: int | None = None
+    contact_info: ContactInfo = field(default_factory=ContactInfo)
+    photo_url: str = ""
+    photo_is_placeholder: bool | None = None
+
+
+@dataclass
+class SchoolContactPerson:
+    """A person in a school contact group, e.g. leadership or the board."""
+
+    name: str
+    group: str = ""
+    contact_info: ContactInfo = field(default_factory=ContactInfo)
+
+
+@dataclass
+class SchoolContacts:
+    """School-wide details, separate from students and their parents."""
+
+    name: str
+    contact_info: ContactInfo = field(default_factory=ContactInfo)
+    website: str = ""
+    photo_url: str = ""
+    people: list[SchoolContactPerson] = field(default_factory=list)
+
+
+@dataclass
+class ClassParentContact:
+    """An explicitly listed class representative, without an inferred student link."""
+
+    name: str
+    class_name: str
+
+
+@dataclass
+class TabulexContact:
+    """One contact in the current child's separate SFO contact directory."""
+
+    name: str
+    id: str | None = None
+    relationship: str = ""
+    contact_info: ContactInfo = field(default_factory=ContactInfo)
+    can_pick_up: bool | None = None
+    has_web_access: bool | None = None
+    is_guardian: bool | None = None
 
 
 # ---------------------------------------------------------------------------

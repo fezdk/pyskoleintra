@@ -671,20 +671,102 @@ for photo in photos:
 
 ---
 
-### Student contacts
+### Student and parent contacts
+
+`Child` remains the entry point for school data. `StudentContact` represents a
+classmate/contact card, not another authenticated `Child`. Parents belong to
+that student; there is no global parent directory or name-based deduplication
+across families. Returned dataclasses are snapshots without network access.
 
 ```python
-contacts = child.contacts()
+# One lightweight page, preserving the existing call's behaviour.
+index = child.contacts()
+for student in index:
+    print(student.id, student.name)  # Dropdown names can be truncated.
 
-for c in contacts:
-    print(c.name)       # "Oliver Andersen"
-    print(c.class_name) # ""
-    print(c.photo_url)  # ""
+# One selected student, or the complete detailed class directory.
+student = child.contact(index[0].id, refresh=True)
+students = child.contacts(detailed=True, refresh=True)
+
+for student in students:
+    print(student.id, student.name, student.class_name)
+    print(student.birth_date)             # datetime.date, or None
+    print(student.contact_info.address)
+    print(student.photo_url, student.photo_is_placeholder)
+    for parent in student.parents:
+        print(parent.name, parent.relationship)
+        print(parent.contact_info.email)
+        print(parent.contact_info.phones.get("mobile"))
+        print(parent.photo_url, parent.photo_is_placeholder)
+
+# Derived lookups on an already loaded snapshot; no HTTP requests.
+parents_by_name = student.parents_by_name  # dict[str, list[ParentContact]]
+if student.parents:
+    parent = student.parent(student.parents[0].name)
 ```
 
-**Model:** `StudentContact`
+`parent(name)` uses an exact case-insensitive name and raises `KeyError` for a
+missing parent or `ValueError` for namesakes. `parents_by_name` retains lists
+rather than overwriting people with the same name. These are local conveniences,
+not stable parent IDs. Student IDs come from the contact selector and are not
+`Child.parent_id`.
 
-**Parser notes:** The contact cards are loaded dynamically via AJAX (the `#sk-contact-card-container` div is empty in the HTML). The parser falls back to extracting student names from the `select#sk-toolbar-contact-dropdown` dropdown. Some names may be truncated with "..." in the dropdown. Full details (photo, class, parent info) would require fetching individual student AJAX endpoints (`/contacts/students/{id}`).
+Detailed reads fetch one card per selected student plus five class reports:
+student addresses/phones, parent contact details, student email, parent email,
+and parent photos. Reports use the form's default class/group and discovered
+report choices. Generating a report uses a read-only POST followed, where
+applicable, by a GET; no contact records are created or edited. A single-student
+lookup still reads the class reports, but only returns the selected student.
+Use the lightweight index when only names and IDs are needed.
+
+Individual cards supply full names, birth dates, student photos and parent
+relationships. Reports fill empty contact fields. Nonempty card values take
+precedence; `contact_info.sources` records the source selected for each field
+(e.g. `student_card`, `parent_contacts`, `parent_emails`). Names must match
+exactly and uniquely within the class/student: ambiguous joins, unexpected
+pages, missing report types or reports for the wrong class raise `ParseError`.
+A blank field does not identify whether information is private or unprovided.
+
+Birth dates remain calendar dates regardless of the instance timezone. An
+unrecognised or incomplete date is retained in `birth_date_text`, with
+`birth_date=None`; a missing year is never inferred. Photo URLs are absolute
+and may require the authenticated session. No image bytes are downloaded by
+these methods. `photo_is_placeholder` distinguishes known default icons from
+personal photo paths; `None` means the type is unknown.
+
+### School and SFO contact directories
+
+```python
+school = child.school_contacts()           # SchoolContacts
+print(school.name, school.website, school.contact_info.email)
+for person in school.people:
+    print(person.group, person.name, person.contact_info.phones)
+
+school_staff = child.staff_contacts()      # list[StaffContact]
+representatives = child.contact_parents()  # list[ClassParentContact]
+
+sfo_contacts = child.tabulex.contacts()     # list[TabulexContact]
+sfo_staff = child.tabulex.staff_contacts()  # list[StaffContact]
+for contact in sfo_contacts:
+    print(contact.name, contact.relationship, contact.contact_info)
+    print(contact.can_pick_up, contact.has_web_access, contact.is_guardian)
+```
+
+These directories are separate from `StudentContact.parents`. School methods
+remain under `Child`, matching the existing authenticated routing. School
+staff are read from the aggregate card page when available. Staff IDs are
+optional: aggregate cards and truncated selector names cannot always be joined
+unambiguously. SFO staff IDs are not inferred from names or photo filenames.
+
+`contact_parents()` means the UI's class representatives, with class and name;
+it does not return every pupil's parents. The empty parent-council page and
+the dynamic SFO play-list result remain unimplemented. SFO contacts are the
+current child's own contact list; their IDs and flags belong to SFO and are not
+merged into the school's parent records. Flags use `None` for unknown values.
+Contact creation, editing, deletion and SFO access changes are not implemented.
+
+**Models:** `StudentContact`, `ParentContact`, `ContactInfo`, `SchoolContacts`,
+`SchoolContactPerson`, `StaffContact`, `ClassParentContact`, `TabulexContact`.
 
 ---
 
@@ -864,12 +946,13 @@ pyskoleintra/
     reading_contract.py# Reading contracts (Vue.js SPA + AJAX)
     contact_book.py    # Contact book notes
     photos.py          # Photo albums and photos
-    contacts.py        # Student contacts (dropdown fallback)
+    contacts.py        # Student/parent cards, reports, school and staff contacts
     documents.py       # School documents
     schedule.py        # Weekly timetable
     frontpage.py       # Navigation menu, child discovery
     sfo.py             # Legacy Infoweb SFO front page
     tabulex.py         # Tabulex dashboard, appointments, holidays, preferences
+    tabulex_contacts.py# Separate SFO contacts and staff
 ```
 
 ### Request flow
@@ -902,7 +985,7 @@ The site uses several different rendering approaches, each requiring a different
 | **Pure JSON endpoint** | Calendar | Endpoint returns JSON array directly |
 | **Vue.js SPA + AJAX** | Reading contracts | HTML is a shell; real data fetched from a separate API endpoint discovered from config JSON |
 | **Server-rendered HTML** | Documents, Contact book, Homework | Traditional HTML with CSS class selectors |
-| **AJAX-loaded content** | Contacts | HTML container is empty; data available only from dropdown or individual AJAX calls |
+| **AJAX-loaded content** | Contacts | Index dropdown, individual cards and generated reports are combined for detailed snapshots |
 | **Complex redirect chains** | SFO/Tabulex | Multiple 302 redirects + SAML form submissions before reaching the actual page |
 
 ### BeautifulSoup attribute casing
@@ -1144,9 +1227,39 @@ The three message models above also include `timestamp`, `calendar_date`, and
 
 | Field | Type | Description |
 |---|---|---|
-| `name` | `str` | Student name (may be truncated with `...` from dropdown) |
-| `class_name` | `str` | Class name (empty from list page) |
-| `photo_url` | `str` | Photo URL (empty from list page) |
+| `name` | `str` | Dropdown name in index mode; full card name in detailed mode |
+| `class_name` | `str` | Class/group label; can be empty in the lightweight index |
+| `photo_url` | `str` | Absolute student photo URL; empty until details are loaded |
+| `id` | `int \| None` | Student contact ID discovered from the card URL |
+| `birth_date` | `date \| None` | Full birth date, without timezone conversion or inferred year |
+| `birth_date_text` | `str` | Original birth-date label |
+| `contact_info` | `ContactInfo` | Student address, email and phone fields |
+| `parents` | `list[ParentContact]` | This student's parents/listed contact people |
+| `photo_is_placeholder` | `bool \| None` | Known default icon, personal path, or unknown |
+| `source_url` | `str` | Discovered student card URL |
+| `details_loaded` | `bool` | Whether the full card was loaded |
+| `parents_by_name` | `dict[str, list[ParentContact]]` | Derived local lookup preserving namesakes |
+
+The positional constructor `StudentContact(name, class_name, photo_url)` remains
+compatible. `parent(name)` performs a local unique lookup.
+
+### Contact models
+
+| Model | Fields |
+|---|---|
+| `ContactInfo` | `address: str`, `email: str`, `phones: dict[str, str]`, `sources: dict[str, str]` |
+| `ParentContact` | `name`, `relationship`, `contact_info`, `photo_url`, `photo_is_placeholder` |
+| `SchoolContacts` | `name`, `contact_info`, `website`, `photo_url`, `people: list[SchoolContactPerson]` |
+| `SchoolContactPerson` | `name`, `group`, `contact_info` |
+| `StaffContact` | `name`, `position`, `id: int \| None`, `contact_info`, `photo_url`, `photo_is_placeholder` |
+| `ClassParentContact` | `name`, `class_name` |
+| `TabulexContact` | `name`, `id: str \| None`, `relationship`, `contact_info`, `can_pick_up`, `has_web_access`, `is_guardian` |
+
+Text fields default to empty strings. Contact-info fields are separate per
+person. Phone keys include `home`, `mobile`, `work`, `work_mobile`, `contact` and
+`contact2`; values keep source formatting and can contain multiple lines.
+Sources use field keys such as `address`, `email` and `phones.mobile`. SFO flags
+are `bool | None`; unknown is not silently treated as false.
 
 ### `ScheduleDay`
 
