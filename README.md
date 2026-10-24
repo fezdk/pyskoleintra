@@ -250,6 +250,58 @@ The `message()` method supports three sources:
 - `source="outbox"` — fetch from sent messages
 - `source="thread"` — fetch all messages in a conversation; requires `thread_id` (UUID from `MessageThread.thread_id`) and `message_id` (numeric from `MessageThread.latest_message_id`)
 
+Each message's `attachments` exposes names and URLs. Native inbox JSON uses
+`Text` and `HrefAttributeValue` for attachment links; the parser also accepts the
+older `Name`/`Url` shape.
+
+#### Download message attachments
+
+`child.download_attachment(attachment)` returns the file as `bytes`, using the
+client's existing authenticated session. It also accepts `attachment.url` directly.
+Loop over **every message and every attachment** to handle a complete thread:
+
+```python
+messages = child.message(
+    thread.latest_message_id, source="thread", thread_id=thread.thread_id,
+)
+for message in messages:
+    for index, attachment in enumerate(message.attachments, start=1):
+        data = child.download_attachment(attachment)
+        print(message.id, index, attachment.name, len(data))
+        # Pass data to your consumer, or write it to an explicitly chosen path.
+```
+
+The method downloads one file per call. It does not deduplicate filenames or
+content; two attachments can have the same name or identical bytes. It does not
+write files automatically. When saving multiple files, choose distinct paths
+using, for example, the message ID and attachment index rather than the filename
+alone. The entire file is held in memory; this is not a streaming API.
+
+Downloads bypass the development HTML cache so binary bytes are preserved. Only
+HTTPS `/file/` URLs on the same school origin are supported, including relative
+links. Up to five redirects within those file routes are followed. External
+hosts, other application routes, URL credentials and fragments are rejected.
+This method is for school attachments; SFO/Tabulex attachments use another flow.
+
+- `NotAuthorizedError`: HTTP 401/403, a redirect to login, or a detected login form.
+  Reauthenticate through `client.login(...)` when necessary; download does not
+  silently log in again.
+- `NetworkError`: transport failure or another unsuccessful HTTP status.
+- `ParseError`: unexpected HTML, unsupported/malformed redirects or redirect loops.
+  An HTML file is accepted only when explicitly served with
+  `Content-Disposition: attachment` and it is not detected as a login form.
+- `TypeError`/`ValueError`: invalid argument or unsupported input URL, before any request.
+
+A URL reference does not imply anonymous access. On **24 October 2026**, one
+PNG attachment returned the actual image with an authenticated session (HTTP
+200), while the exact same URL without cookies or an Authorization header
+redirected to login (HTTP 302). This verifies authentication for that attachment,
+not every file endpoint. The public method was then verified against that PNG
+and two separate attachment references from a message containing **11 attachments**.
+Both downloads matched direct authenticated GETs, and the message snapshot was
+unchanged. Synthetic tests also cover multiple messages, duplicate filenames,
+binary cache bypass, redirects and login/error responses.
+
 #### Mark messages read or unread
 
 Message status is changed explicitly with numeric message IDs:

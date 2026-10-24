@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Literal
 from urllib.parse import urlencode, urljoin, urlsplit
 from zoneinfo import ZoneInfo
 
+from .attachments import download_attachment as _download_attachment
 from .dates import DEFAULT_TIMEZONE, in_timezone, resolve_timezone
 from .exceptions import NetworkError, NotAuthorizedError, ParseError
 from .http import response_fetched_at
@@ -24,6 +25,7 @@ from .models import (
     Album,
     ArchivedMessageDetail,
     ArchivedMessagePage,
+    Attachment,
     CalendarEvent,
     ChildInfo,
     ClassParentContact,
@@ -261,6 +263,21 @@ class Child:
         return msg_parser.parse_message_detail_html(
             resp.text, str(message_id), **self._date_context(resp),
         )
+
+    def download_attachment(self, attachment: Attachment | str) -> bytes:
+        """Download one school message attachment using the existing login session.
+
+        Accepts an Attachment from MessageDetail.attachments or its URL. Iterate
+        each message's attachments to download multiple files; names are not
+        required to be unique. Returns original response bytes without decoding,
+        caching or writing files. The entire attachment is held in memory.
+
+        Only same-school HTTPS /file/ URLs and redirects are supported. Login
+        responses raise NotAuthorizedError; other HTTP failures raise NetworkError;
+        unexpected HTML or redirects raise ParseError. This does not log in again
+        or send a message read-status action. SFO attachments use a separate API.
+        """
+        return _download_attachment(self._http, self._base_url, attachment)
 
     def search_messages(self, query: str) -> list[MessageThread]:
         """Search inbox messages by keyword."""

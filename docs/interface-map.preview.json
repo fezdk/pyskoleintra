@@ -85,5 +85,19 @@
       "docs/interface-map.md": "5dd8a0420dec0b3b68d35d5dc422f4144a7ea12f1d7dd50d883ff30390496c37",
       "docs/interface-map.html": "e8638fb254b75d81f058262276e20c3945a44018a0559838bcb3f5ae71e9d208"
     }
+  },
+  "attachment_download_api_revision": {
+    "date": "2026-10-24",
+    "change": "Authenticated school attachment download and native link-field parsing implemented; every message attachment is retained. Three live references verified via GET.",
+    "checks": [
+      "Deterministic regeneration",
+      "36 areas and 7 proposals preserved",
+      "Download method included in inbox coverage"
+    ],
+    "browser_evidence_scope": "Static map checks only. Live binary downloads were separately verified via authenticated HTTP.",
+    "sha256": {
+      "docs/interface-map.md": "6f4d38f0d1a0c5f5e3cc60f1c9c64ef9d702a448301fcbdd4c7d04ffcf446ade",
+      "docs/interface-map.html": "37184da035dc74d897aeee132c423ccf9aec84436a8f42d032153877bb816663"
+    }
   }
 }

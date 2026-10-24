@@ -1,10 +1,32 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from pyskoleintra.child import Child
 from pyskoleintra.exceptions import ParseError
-from pyskoleintra.models import ChildInfo
+from pyskoleintra.models import Attachment, ChildInfo
+from pyskoleintra.parsers.messages import parse_message_detail_json
+
+
+@pytest.mark.parametrize("link", [
+    {"Id": "attachment-1", "CssClass": "sk-attachment-link",
+     "Text": "Information til forældre.pdf", "HrefAttributeValue": "/File/Download/123",
+     "IsOpenedInNewWindow": True, "IgnoreTouchForcedNewTabOpen": False},
+    {"Name": "Information til forældre.pdf", "Url": "/File/Download/123"},
+    {"Text": "Information til forældre.pdf", "HrefAttributeValue": "/File/Download/123",
+     "Name": "Legacy name", "Url": "/legacy-link"},
+])
+def test_thread_attachment_uses_native_link_fields_and_supports_legacy_fields(link):
+    messages = parse_message_detail_json(json.dumps([
+        {"Id": 10, "AttachmentsLinks": [link]},
+        {"Id": 11, "AttachmentsLinks": None},
+    ]))
+    assert messages[0].attachments == [
+        Attachment("Information til forældre.pdf", "/File/Download/123"),
+    ]
+    assert messages[1].attachments == []
 
 
 class _Response:

@@ -290,9 +290,11 @@ def parse_message_detail_json(
         attachments = []
         for link in (msg.get("AttachmentsLinks") or []):
             if isinstance(link, dict):
+                # Native inbox responses expose a rendered-link view model.
+                # Retain the older Name/Url shape for existing integrations.
                 attachments.append(Attachment(
-                    name=link.get("Name", ""),
-                    url=link.get("Url", ""),
+                    name=link.get("Text") or link.get("Name", ""),
+                    url=link.get("HrefAttributeValue") or link.get("Url", ""),
                 ))
 
         details.append(MessageDetail(
